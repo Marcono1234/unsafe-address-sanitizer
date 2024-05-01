@@ -357,6 +357,13 @@ public class UnsafeSanitizerImpl {
 
     private static boolean onAccess(@Nullable Object obj, long address, long bytesCount, boolean isRead) {
         if (obj == null) {
+            // If `bytesCount` is 0, allow address 0; this assumes that user code might first call `Unsafe#allocateMemory`
+            // and then uses the returned address as argument to `copyMemory` or `setMemory`;
+            // if the bytes count is 0, then `allocateMemory` will return 0 as address
+            if (bytesCount == 0 && address == 0) {
+                return true;
+            }
+
             var memoryTracker = getMemoryTracker();
             return memoryTracker == null
                 || memoryTracker.onAccess(address, bytesCount, isRead);

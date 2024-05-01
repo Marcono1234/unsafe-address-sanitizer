@@ -230,18 +230,23 @@ class MemoryTracker {
     }
 
     public boolean onCopy(long srcAddress, long destAddress, long bytesCount) {
+        if (bytesCount == 0) {
+            // Allow address to be right behind section ('exclusive end address') since copy size is 0
+            boolean isZeroSized = true;
+
+            // Allow address 0; this assumes that user code might first call `Unsafe#allocateMemory` and then uses
+            // the returned address as argument to `copyMemory`;
+            // if the bytes count is 0, then `allocateMemory` will return 0 as address
+            return (srcAddress == 0 || verifyValidAddress(srcAddress, isZeroSized))
+                && (destAddress == 0 || verifyValidAddress(destAddress, isZeroSized));
+        }
+
         if (srcAddress <= 0) {
             return reportError("Invalid srcAddress: " + srcAddress);
         } else if (destAddress <= 0) {
             return reportError("Invalid destAddress: " + destAddress);
         } else if (!verifyValidBytesCount(bytesCount)) {
             return false;
-        }
-
-        if (bytesCount == 0) {
-            // Allow address to be right behind section ('exclusive end address') since copy size is 0
-            boolean isZeroSized = true;
-            return verifyValidAddress(srcAddress, isZeroSized) && verifyValidAddress(destAddress, isZeroSized);
         }
 
         lock.writeLock().lock();

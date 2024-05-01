@@ -567,6 +567,29 @@ class UnsafeThrowErrorTest {
             unsafe.copyMemory(a, from, a, to, 2 * Long.BYTES);
             assertArrayEquals(new long[] {1, 2, 1, 2}, a);
         });
+
+        assertNoBadMemoryAccess(() -> {
+            byte[] a = {1};
+            byte[] b = {0};
+            // Copy of size 0 should have no effect
+            unsafe.copyMemory(a, ARRAY_BYTE_BASE_OFFSET, b, ARRAY_BYTE_BASE_OFFSET, 0);
+            assertArrayEquals(new byte[] {1}, a);
+            assertArrayEquals(new byte[] {0}, b);
+
+            // Copy of size 0 should also be allowed right behind last array element, i.e. at 'exclusive end address' (but should have no effect)
+            long endOffset = ARRAY_BYTE_BASE_OFFSET + a.length * ARRAY_BYTE_INDEX_SCALE;
+            unsafe.copyMemory(a, endOffset, b, ARRAY_BYTE_BASE_OFFSET, 0);
+            unsafe.copyMemory(b, ARRAY_BYTE_BASE_OFFSET, a, endOffset, 0);
+            assertArrayEquals(new byte[] {1}, a);
+            assertArrayEquals(new byte[] {0}, b);
+
+            // Size 0 should allow using address 0 (should have no effect)
+            unsafe.copyMemory(a, ARRAY_BYTE_BASE_OFFSET, null, 0, 0);
+            unsafe.copyMemory(null, 0, b, ARRAY_BYTE_BASE_OFFSET, 0);
+            assertArrayEquals(new byte[] {1}, a);
+            assertArrayEquals(new byte[] {0}, b);
+        });
+
         assertBadMemoryAccess(() -> {
             byte[] b = {1, 2, 3, 4};
             long from = ARRAY_BYTE_BASE_OFFSET;
@@ -574,6 +597,28 @@ class UnsafeThrowErrorTest {
             long to = ARRAY_BYTE_BASE_OFFSET + ARRAY_BYTE_INDEX_SCALE * 3L;
             unsafe.copyMemory(b, from, b, to, 2);
         });
+
+        {
+            byte[] a = {1};
+            // Should fail for invalid address, even if size is 0
+            long maxOffset = ARRAY_BYTE_BASE_OFFSET + a.length * ARRAY_BYTE_INDEX_SCALE;
+            var e = assertBadMemoryAccess(() -> unsafe.copyMemory(a, ARRAY_BYTE_BASE_OFFSET, a, maxOffset + 1, 0));
+            assertEquals("Bad array access at offset " + (maxOffset + 1) + ", size 0; max offset is " + maxOffset, e.getMessage());
+            e = assertBadMemoryAccess(() -> unsafe.copyMemory(a, ARRAY_BYTE_BASE_OFFSET, null, -1, 0));
+            assertEquals("Invalid address: -1", e.getMessage());
+            e = assertBadMemoryAccess(() -> unsafe.copyMemory(null, -1, a, ARRAY_BYTE_BASE_OFFSET, 0));
+            assertEquals("Invalid address: -1", e.getMessage());
+        }
+
+        {
+            byte[] b = {1};
+            // Should fail for array offset 0 (assuming that base offset != 0), even if size is 0
+            assert ARRAY_BYTE_BASE_OFFSET > 0;
+            var e = assertBadMemoryAccess(() -> unsafe.copyMemory(b, 0, b, ARRAY_BYTE_BASE_OFFSET, 0));
+            assertEquals("Bad array access at offset 0; min offset is " + ARRAY_BYTE_BASE_OFFSET, e.getMessage());
+            e = assertBadMemoryAccess(() -> unsafe.copyMemory(b, ARRAY_BYTE_BASE_OFFSET, b, 0, 0));
+            assertEquals("Bad array access at offset 0; min offset is " + ARRAY_BYTE_BASE_OFFSET, e.getMessage());
+        }
 
         var e = assertBadMemoryAccess(() -> {
             Object[] a = {"a", "b"};
@@ -603,6 +648,18 @@ class UnsafeThrowErrorTest {
         dummy.a = 1;
         var e = assertBadMemoryAccess(() -> unsafe.copyMemory(dummy, offsetA, dummy, offsetB, 2));
         assertEquals("Unsupported class " + Dummy.class.getTypeName(), e.getMessage());
+
+        // Should fail even if size is 0
+        e = assertBadMemoryAccess(() -> unsafe.copyMemory(dummy, offsetA, dummy, offsetB, 0));
+        assertEquals("Unsupported class " + Dummy.class.getTypeName(), e.getMessage());
+
+        // Should fail for offset 0 (assuming that no field is at that offset), even if size is 0
+        assert offsetA != 0 && offsetB != 0;
+        byte[] b = {1};
+        e = assertBadMemoryAccess(() -> unsafe.copyMemory(dummy, 0, b, ARRAY_BYTE_BASE_OFFSET, 0));
+        assertEquals("Unsupported class " + Dummy.class.getTypeName(), e.getMessage());
+        e = assertBadMemoryAccess(() -> unsafe.copyMemory(b, ARRAY_BYTE_BASE_OFFSET, dummy, 0, 0));
+        assertEquals("Unsupported class " + Dummy.class.getTypeName(), e.getMessage());
     }
 
     @Test
@@ -621,8 +678,15 @@ class UnsafeThrowErrorTest {
             assertEquals(longValue, unsafe.getLong(a));
             assertEquals(0, unsafe.getLong(b));
 
-            // Copy of size 0 should also be allowed right behind sections, i.e. at 'exclusive end address'
+            // Copy of size 0 should also be allowed right behind sections, i.e. at 'exclusive end address' (but should have no effect)
             unsafe.copyMemory(null, a + size, null, b + size, 0);
+            assertEquals(longValue, unsafe.getLong(a));
+            assertEquals(0, unsafe.getLong(b));
+
+            // Size 0 should allow using address 0 (should have no effect)
+            unsafe.copyMemory(null, 0, null, 0, 0);
+            unsafe.copyMemory(null, a, null, 0, 0);
+            unsafe.copyMemory(null, 0, null, b, 0);
             assertEquals(longValue, unsafe.getLong(a));
             assertEquals(0, unsafe.getLong(b));
 
@@ -664,6 +728,12 @@ class UnsafeThrowErrorTest {
 
         assertBadMemoryAccess(() -> unsafe.copyMemory(null, a, null, b + 1, size));
         assertBadMemoryAccess(() -> unsafe.copyMemory(a, b + 1, size));
+
+        // Should fail for invalid address, even if size is 0
+        var e = assertBadMemoryAccess(() -> unsafe.copyMemory(-1, 0, 0));
+        assertEquals("Invalid address: -1", e.getMessage());
+        e = assertBadMemoryAccess(() -> unsafe.copyMemory(0, -1, 0));
+        assertEquals("Invalid address: -1", e.getMessage());
 
         assertBadMemoryAccess(() -> {
             class Dummy {
@@ -718,6 +788,17 @@ class UnsafeThrowErrorTest {
             unsafe.setMemory(a, ARRAY_OBJECT_BASE_OFFSET, ARRAY_OBJECT_INDEX_SCALE, (byte) 2);
         });
         assertEquals("Unsupported class " + Object[].class.getTypeName(), e.getMessage());
+
+        e = assertBadMemoryAccess(() -> {
+            byte[] b = {1, 2, 3, 4};
+            // Should fail for array offset 0 (assuming that base offset != 0), even if size is 0
+            assert ARRAY_BYTE_BASE_OFFSET > 0;
+            unsafe.setMemory(b, 0, 0, (byte) 5);
+        });
+        assertEquals(
+            "Bad array access at offset 0; min offset is " + ARRAY_BYTE_BASE_OFFSET,
+            e.getMessage()
+        );
     }
 
     @Test
@@ -737,6 +818,15 @@ class UnsafeThrowErrorTest {
         dummy.a = 1;
         var e = assertBadMemoryAccess(() -> unsafe.setMemory(dummy, offset, 4, (byte) 2));
         assertEquals("Unsupported class " + Dummy.class.getTypeName(), e.getMessage());
+
+        // Should fail even if size is 0
+        e = assertBadMemoryAccess(() -> unsafe.setMemory(dummy, offset, 0, (byte) 2));
+        assertEquals("Unsupported class " + Dummy.class.getTypeName(), e.getMessage());
+
+        // Should fail for offset 0 (assuming that no field is at that offset), even if size is 0
+        assert offset != 0;
+        e = assertBadMemoryAccess(() -> unsafe.setMemory(dummy, 0, 0, (byte) 2));
+        assertEquals("Unsupported class " + Dummy.class.getTypeName(), e.getMessage());
     }
 
     @Test
@@ -750,9 +840,12 @@ class UnsafeThrowErrorTest {
             unsafe.setMemory(a, 0, (byte) 1);
             assertEquals(0, unsafe.getLong(a));
 
-            // Size 0 should also be allowed right behind section, i.e. at 'exclusive end address'
+            // Size 0 should also be allowed right behind section, i.e. at 'exclusive end address' (but should have no effect)
             unsafe.setMemory(a + size, 0, (byte) 1);
             assertEquals(0, unsafe.getLong(a));
+
+            // Size 0 should allow using address 0 (should have no effect)
+            unsafe.setMemory(0, 0, (byte) 1);
 
             unsafe.setMemory(a + 2, 4, (byte) 0x12);
             assertEquals(0x12121212, unsafe.getInt(a + 2));
@@ -767,6 +860,10 @@ class UnsafeThrowErrorTest {
         var e = assertBadMemoryAccess(() -> unsafe.setMemory(-1, 2, (byte) 0));
         assertEquals("Invalid address: -1", e.getMessage());
 
+        // Should fail for invalid address, even if size is 0
+        e = assertBadMemoryAccess(() -> unsafe.setMemory(-1, 0, (byte) 0));
+        assertEquals("Invalid address: -1", e.getMessage());
+
         long size = 8;
         long a = allocateMemory(size);
 
@@ -776,6 +873,13 @@ class UnsafeThrowErrorTest {
         e = assertBadMemoryAccess(() -> unsafe.setMemory(a + 1, size, (byte) 0));
         assertEquals(
             "Access outside of section at " + (a + 1) + ", size 8 (previous section: " + a + ", size 8)",
+            e.getMessage()
+        );
+
+        // Should fail for invalid address, even if size is 0
+        e = assertBadMemoryAccess(() -> unsafe.setMemory(a + size + 1, 0, (byte) 4));
+        assertEquals(
+            "Access outside of section at " + (a + size + 1) + ", size 0 (previous section: " + a + ", size 8)",
             e.getMessage()
         );
 
