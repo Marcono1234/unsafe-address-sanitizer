@@ -134,53 +134,73 @@ interface UnsafeInterceptors {
     }
 
     /**
-     * All {@code getX} memory methods, except for {@link Unsafe#getAndSetObject(Object, long, Object)}
+     * All {@code getX} memory methods with {@code Object} base parameter, except for {@link Unsafe#getAndSetObject(Object, long, Object)}
      * (which is handled by {@link GetAndSetObject}).
      */
-    class GetX {
+    class GetXObject {
         @OnMethodEnter(skipOn = OnDefaultValue.class) // -> `return false` = skip
         // Note: Don't use `@Origin Method` because that would create a new `Method` for every call
-        public static boolean enter(@Origin("#m") String methodName, @Origin MethodType method, @AllArguments(typing = DYNAMIC) Object[] arguments) {
-            Object obj;
-            long address;
-            // Check index 1 because index 0 is `Unsafe` (receiver type)
-            if (method.parameterType(1) == Object.class) {
-                obj = arguments[0];
-                address = (long) arguments[1];
-            } else {
-                obj = null;
-                address = (long) arguments[0];
-            }
-            
-            MemorySize size;
-            if (methodName.equals("getAddress")) {
-                size = MemorySize.ADDRESS;
-            } else {
-                size = MemorySize.fromClass(method.returnType());
-            }
+        public static boolean enter(@Origin MethodType method, @Argument(0) Object obj, @Argument(1) long offset) {
+            MemorySize size = MemorySize.fromClass(method.returnType());
 
             // Technically for the `getAnd...` methods this is also `onWriteAccess`, but that would be mainly relevant
             // for marking memory as initialized, and `onReadAccess` already verifies that memory is initialized
-            return UnsafeSanitizerImpl.onReadAccess(obj, address, size);
+            return UnsafeSanitizerImpl.onReadAccess(obj, offset, size);
         }
         
         @OnMethodExit
-        public static void exit(@Origin("#m") String methodName, @Enter boolean wasExecuted, @Return(typing = DYNAMIC, readOnly = false) Object result, @StubValue Object resultDefault) {
+        public static void exit(@Enter boolean wasExecuted, @Return(typing = DYNAMIC, readOnly = false) Object result, @StubValue Object resultDefault) {
             if (!wasExecuted) {
-                if (methodName.equals("getAddress")) {
-                    //noinspection UnusedAssignment
-                    result = INVALID_ADDRESS;
-                } else {
-                    // TODO: Is this explicitly necessary, or does it implicitly get the default value?
-                    //noinspection UnusedAssignment
-                    result = resultDefault;
-                }
+                // TODO: Is this explicitly necessary, or does it implicitly get the default value?
+                //noinspection UnusedAssignment
+                result = resultDefault;
             }
         }
     }
 
     /**
-     * {@link Unsafe#getAndSetObject(Object, long, Object)}.
+     * All {@code getX} memory methods without {@code Object} base parameter, except for {@link Unsafe#getAddress(long)}
+     * (which is handled by {@link GetAddress}).
+     */
+    class GetX {
+        @OnMethodEnter(skipOn = OnDefaultValue.class) // -> `return false` = skip
+        // Note: Don't use `@Origin Method` because that would create a new `Method` for every call
+        public static boolean enter(@Origin MethodType method, @Argument(0) long address) {
+            MemorySize size = MemorySize.fromClass(method.returnType());
+            return UnsafeSanitizerImpl.onReadAccess(null, address, size);
+        }
+
+        @OnMethodExit
+        public static void exit(@Enter boolean wasExecuted, @Return(typing = DYNAMIC, readOnly = false) Object result, @StubValue Object resultDefault) {
+            if (!wasExecuted) {
+                // TODO: Is this explicitly necessary, or does it implicitly get the default value?
+                //noinspection UnusedAssignment
+                result = resultDefault;
+            }
+        }
+    }
+
+    /**
+     * {@link Unsafe#getAddress(long)}
+     */
+    class GetAddress {
+        @OnMethodEnter(skipOn = OnDefaultValue.class) // -> `return false` = skip
+        public static boolean enter(@Argument(0) long address) {
+            MemorySize size = MemorySize.ADDRESS;
+            return UnsafeSanitizerImpl.onReadAccess(null, address, size);
+        }
+
+        @OnMethodExit
+        public static void exit(@Enter boolean wasExecuted, @Return(readOnly = false) long result) {
+            if (!wasExecuted) {
+                //noinspection UnusedAssignment
+                result = INVALID_ADDRESS;
+            }
+        }
+    }
+
+    /**
+     * {@link Unsafe#getAndSetObject(Object, long, Object)}
      */
     class GetAndSetObject {
         @OnMethodEnter(skipOn = OnDefaultValue.class) // -> `return false` = skip
@@ -201,47 +221,53 @@ interface UnsafeInterceptors {
     }
 
     /**
-     * All {@code putX} methods.
+     * All {@code putX} methods with {@code Object} base parameter.
+     */
+    class PutXObject {
+        @OnMethodEnter(skipOn = OnDefaultValue.class) // -> `return false` = skip
+        // Note: Don't use `@Origin Method` because that would create a new `Method` for every call
+        public static boolean enter(@Origin MethodType method, @Argument(0) Object obj, @Argument(1) long offset, @Argument(value = 2, typing = DYNAMIC) Object value) {
+            // Additional `+ 1` because index 0 is `Unsafe` (receiver type)
+            Class<?> valueClass = method.parameterType(2 + 1);
+            MemorySize size = MemorySize.fromClass(valueClass);
+            Object writtenObject = null;
+            if (valueClass == Object.class) {
+                writtenObject = value;
+            }
+
+            return UnsafeSanitizerImpl.onWriteAccess(obj, offset, size, writtenObject);
+        }
+    }
+
+    /**
+     * All {@code putX} methods without {@code Object} base parameter, except for {@link Unsafe#putAddress(long, long)}
+     * (which is covered by {@link PutAddress}).
      */
     class PutX {
         @OnMethodEnter(skipOn = OnDefaultValue.class) // -> `return false` = skip
         // Note: Don't use `@Origin Method` because that would create a new `Method` for every call
-        public static boolean enter(@Origin("#m") String methodName, @Origin MethodType method, @AllArguments(typing = DYNAMIC) Object[] arguments) {
-            Object obj;
-            int addressIndex;
-            // Check index 1 because index 0 is `Unsafe` (receiver type)
-            if (method.parameterType(1) == Object.class) {
-                obj = arguments[0];
-                addressIndex = 1;
-            } else {
-                obj = null;
-                addressIndex = 0;
+        public static boolean enter(@Origin MethodType method, @Argument(0) long address) {
+            // Additional `+ 1` because index 0 is `Unsafe` (receiver type)
+            Class<?> valueClass = method.parameterType(1 + 1);
+            MemorySize size = MemorySize.fromClass(valueClass);
+            // Note: All `putObject` overloads have `Object` as first parameter (and are therefore not covered by
+            // this interceptor), so `writtenObject` is always null
+            return UnsafeSanitizerImpl.onWriteAccess(null, address, size, null);
+        }
+    }
+
+    /**
+     * {@link Unsafe#putAddress(long, long)}
+     */
+    class PutAddress {
+        @OnMethodEnter(skipOn = OnDefaultValue.class) // -> `return false` = skip
+        public static boolean enter(@Argument(0) long address, @Argument(1) long addressValue) {
+            // `Unsafe.putAddress` says behavior is undefined if address value does not point to valid allocation
+            if (!UnsafeSanitizerImpl.verifyValidMemoryAddress(addressValue)) {
+                return false;
             }
-
-            boolean isPutAddressMethod = methodName.equals("putAddress");
-
-            long address = (long) arguments[addressIndex];
-            int valueIndex = addressIndex + 1;
-            MemorySize size;
-            Object writtenObject = null;
-            if (isPutAddressMethod) {
-                size = MemorySize.ADDRESS;
-
-                // `Unsafe.putAddress` says behavior is undefined if address value does not point to valid allocation
-                long addressValue = (long) arguments[valueIndex];
-                if (!UnsafeSanitizerImpl.verifyValidMemoryAddress(addressValue)) {
-                    return false;
-                }
-            } else {
-                // Additional `+ 1` because index 0 is `Unsafe` (receiver type)
-                Class<?> valueClass = method.parameterType(valueIndex + 1);
-                size = MemorySize.fromClass(valueClass);
-                if (valueClass == Object.class) {
-                    writtenObject = arguments[valueIndex];
-                }
-            }
-
-            return UnsafeSanitizerImpl.onWriteAccess(obj, address, size, writtenObject);
+            MemorySize size = MemorySize.ADDRESS;
+            return UnsafeSanitizerImpl.onWriteAccess(null, address, size, null);
         }
     }
 

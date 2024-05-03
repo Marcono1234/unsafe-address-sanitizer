@@ -59,7 +59,7 @@ class TransformBuilder {
     /**
      * Adds the {@code interceptor} (implemented using {@link Advice}) for all methods with the given {@code name}.
      */
-    public TransformBuilder addMethod(String name, Class<?> interceptor) {
+    public TransformBuilder addMethods(String name, Class<?> interceptor) {
         Objects.requireNonNull(name);
         return addMethods(named(name).and(isPublic()), interceptor);
     }

@@ -14,7 +14,7 @@ import static marcono1234.unsafe_sanitizer.agent_impl.DirectByteBufferHelper.DEA
 public class MethodCallDebugLogger {
     private MethodCallDebugLogger() {}
 
-    static volatile boolean isEnabled = false;
+    public static volatile boolean isEnabled = false;
 
     private static String formatChar(char c) {
         if (c == '"' || c == '\'' || c == '\\') {
@@ -55,10 +55,6 @@ public class MethodCallDebugLogger {
         Object this_,
         Object[] arguments
     ) {
-        if (!isEnabled) {
-            return;
-        }
-
         StringBuilder message = new StringBuilder("[DEBUG] ");
         // Append class name without package name
         message.append(declaringClassName, declaringClassName.lastIndexOf('.') + 1, declaringClassName.length());
@@ -94,10 +90,6 @@ public class MethodCallDebugLogger {
         Object result,
         Throwable thrown
     ) {
-        if (!isEnabled) {
-            return;
-        }
-
         // Prints the remainder for the message started in `onMethodEnter`
         String remainder;
         if (thrown != null) {

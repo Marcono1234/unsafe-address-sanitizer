@@ -75,7 +75,7 @@ class FieldAccessSanitizer {
         } else {
             Class<?> c = obj.getClass();
             classDisplayName = c.getTypeName();
-            fieldData = getInstanceFieldSize(c, offset);
+            fieldData = getInstanceFieldData(c, offset);
         }
 
         if (fieldData == null) {
@@ -123,7 +123,7 @@ class FieldAccessSanitizer {
         return map;
     }
 
-    private FieldData getInstanceFieldSize(Class<?> c, long offset) {
+    private FieldData getInstanceFieldData(Class<?> c, long offset) {
         var offsetMap = instanceFieldsCache.computeIfAbsent(c, key -> createInstanceFieldsOffsetMap(c));
         return offsetMap.get(offset);
     }

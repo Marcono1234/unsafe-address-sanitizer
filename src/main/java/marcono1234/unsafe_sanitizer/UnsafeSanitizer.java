@@ -280,34 +280,53 @@ public class UnsafeSanitizer {
 
             var transforms = List.of(
                 new TransformBuilder(Unsafe.class)
-                    .addMethod("allocateMemory", AllocateMemory.class)
-                    .addMethod("reallocateMemory", ReallocateMemory.class)
-                    .addMethod("freeMemory", FreeMemory.class)
+                    .addMethods("allocateMemory", AllocateMemory.class)
+                    .addMethods("reallocateMemory", ReallocateMemory.class)
+                    .addMethods("freeMemory", FreeMemory.class)
                     .addMethods(named("setMemory").and(isPublic()).and(takesArguments(4)), SetMemoryObject.class)
                     .addMethods(named("setMemory").and(isPublic()).and(takesArguments(3)), SetMemoryAddress.class)
                     .addMethods(named("copyMemory").and(isPublic()).and(takesArguments(5)), CopyMemoryObject.class)
                     .addMethods(named("copyMemory").and(isPublic()).and(takesArguments(3)), CopyMemoryAddress.class)
                     .addMethods(
                         nameStartsWith("get").and(isPublic())
-                            // Avoid matching unrelated getters such as `getUnsafe`, `getLoadAverage` or `getClass`
-                            .and(hasParameters(whereAny(hasType(is(long.class)))))
-                            // `getAndSetObject` is handled separately below
-                            .and(not(named("getAndSetObject"))),
+                            .and(takesArgument(0, long.class))
+                            // `getAddress` is handled separately below
+                            .and(not(named("getAddress"))),
                         GetX.class
                     )
-                    .addMethod("getAndSetObject", GetAndSetObject.class)
-                    .addMethodsWithPrefix("put", PutX.class)
+                    .addMethods("getAddress", GetAddress.class)
+                    .addMethods(
+                        nameStartsWith("get").and(isPublic())
+                            .and(takesArgument(0, Object.class))
+                            // `getAndSetObject` is handled separately below
+                            .and(not(named("getAndSetObject"))),
+                        GetXObject.class
+                    )
+                    .addMethods("getAndSetObject", GetAndSetObject.class)
+                    .addMethods(
+                        nameStartsWith("put").and(isPublic())
+                            .and(takesArgument(0, long.class))
+                            // `putAddress` is handled separately below
+                            .and(not(named("putAddress"))),
+                        PutX.class
+                    )
+                    .addMethods("putAddress", PutAddress.class)
+                    .addMethods(
+                        nameStartsWith("put").and(isPublic())
+                            .and(takesArgument(0, Object.class)),
+                        PutXObject.class
+                    )
                     .addMethods(
                         nameStartsWith("compareAndSwap").and(isPublic())
                             // `compareAndSwapObject` is handled separately below
                             .and(not(named("compareAndSwapObject"))),
                         CompareAndSwapX.class
                     )
-                    .addMethod("compareAndSwapObject", CompareAndSwapObject.class),
+                    .addMethods("compareAndSwapObject", CompareAndSwapObject.class),
                 new TransformBuilder(ByteBuffer.class)
-                    .addMethod("allocateDirect", DirectByteBufferInterceptors.AllocateDirect.class),
+                    .addMethods("allocateDirect", DirectByteBufferInterceptors.AllocateDirect.class),
                 new TransformBuilder(DEALLOCATOR_CLASS_NAME)
-                    .addMethod("run", DirectByteBufferInterceptors.DeallocatorRun.class)
+                    .addMethods("run", DirectByteBufferInterceptors.DeallocatorRun.class)
             );
 
             // The agent and the advice classes are installed here (in non-bootstrap) because otherwise if this was

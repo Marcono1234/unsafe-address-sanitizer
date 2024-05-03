@@ -33,7 +33,11 @@ class MethodLoggingInterceptor {
         @This(optional = true, typing = DYNAMIC) Object this_,
         @AllArguments(typing = DYNAMIC) Object[] arguments
     ) {
-        MethodCallDebugLogger.onMethodEnter(declaringTypeName, methodName, this_, arguments);
+        // Check here already if logging is enabled; seems Byte Buddy can avoid boxing primitives if `arguments`
+        // is not used
+        if (MethodCallDebugLogger.isEnabled) {
+            MethodCallDebugLogger.onMethodEnter(declaringTypeName, methodName, this_, arguments);
+        }
     }
 
     @OnMethodExit(onThrowable = Throwable.class)
@@ -42,6 +46,10 @@ class MethodLoggingInterceptor {
         @Return(typing = DYNAMIC) Object result,
         @Thrown Throwable thrown
     )  {
-        MethodCallDebugLogger.onMethodExit(method, result, thrown);
+        // Check here already if logging is enabled; seems Byte Buddy can avoid boxing primitives if `result`
+        // is not used
+        if (MethodCallDebugLogger.isEnabled) {
+            MethodCallDebugLogger.onMethodExit(method, result, thrown);
+        }
     }
 }
