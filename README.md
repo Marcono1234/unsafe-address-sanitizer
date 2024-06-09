@@ -8,9 +8,9 @@ The issue with `Unsafe` is that it does not detect out-of-bounds reads and write
 validation. Therefore invalid arguments can break the correctness of an application or even represent a security
 vulnerability.
 
-Note that the memory access methods of `Unsafe` will probably be deprecated and removed in future JDK versions, see
-[JEP draft JDK-8323072](https://openjdk.org/jeps/8323072). Libraries targeting newer Java versions should
-prefer [`java.lang.foreign.MemorySegment`](https://docs.oracle.com/en/java/javase/22/docs/api/java.base/java/lang/foreign/MemorySegment.html),
+Note that the memory access methods of `Unsafe` have been deprecated for JDK 23 and will be removed in a future JDK
+version, see [JEP 471](https://openjdk.org/jeps/471). Libraries targeting newer Java versions should prefer
+[`java.lang.foreign.MemorySegment`](https://docs.oracle.com/en/java/javase/22/docs/api/java.base/java/lang/foreign/MemorySegment.html),
 which is a safer alternative to `Unsafe`.
 
 ### Why this sanitizer?
