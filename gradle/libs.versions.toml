@@ -7,7 +7,7 @@ junit = "5.10.3"
 [libraries]
 bytebuddy = { module = "net.bytebuddy:byte-buddy", version.ref = "bytebuddy" }
 bytebuddy-agent = { module = "net.bytebuddy:byte-buddy-agent", version.ref = "bytebuddy" }
-errorprone-annotations = { module = "com.google.errorprone:error_prone_annotations", version = "2.29.2" }
+errorprone-annotations = { module = "com.google.errorprone:error_prone_annotations", version = "2.31.0" }
 jetbrains-annotations = { module = "org.jetbrains:annotations", version = "24.1.0" }
 
 junit = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
