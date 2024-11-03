@@ -1,7 +1,7 @@
 # https://docs.gradle.org/8.5/userguide/platforms.html#sub::toml-dependencies-format
 
 [versions]
-bytebuddy = "1.15.3"
+bytebuddy = "1.15.9"
 junit = "5.11.3"
 
 [libraries]
