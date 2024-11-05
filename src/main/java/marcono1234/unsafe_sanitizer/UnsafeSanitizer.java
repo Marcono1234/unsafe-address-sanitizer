@@ -396,7 +396,7 @@ public class UnsafeSanitizer {
         JarFile jar;
         try {
             Path agentJarPath = Files.createTempFile(jarNamePrefix, jarNameSuffix);
-            // TODO: Trailing `_` is as workaround for https://github.com/johnrengelman/shadow/issues/111
+            // TODO: Trailing `_` is as workaround for https://github.com/GradleUp/shadow/issues/111
             InputStream agentJarStream = UnsafeSanitizer.class.getResourceAsStream("agent-impl.jar_");
             if (agentJarStream == null) {
                 throw new IllegalStateException("agent-impl JAR is missing");

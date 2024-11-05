@@ -20,13 +20,13 @@ tasks.shadowJar {
     relocationPrefix = "marcono1234.unsafe_sanitizer.agent_impl.deps"
     duplicatesStrategy = DuplicatesStrategy.FAIL
 
-    // Include own `module-info.class`, see https://github.com/johnrengelman/shadow/issues/710
+    // Include own `module-info.class`, see https://github.com/GradleUp/shadow/issues/710
     excludes.remove("module-info.class")
 
-    // Exclude `module-info` from dependencies, see also https://github.com/johnrengelman/shadow/issues/729
+    // Exclude `module-info` from dependencies, see also https://github.com/GradleUp/shadow/issues/729
     exclude("META-INF/versions/*/module-info.class")
 
-    // Note: Depending on the dependencies, might have to set `Multi-Release: true`, see https://github.com/johnrengelman/shadow/issues/449
+    // Note: Depending on the dependencies, might have to set `Multi-Release: true`, see https://github.com/GradleUp/shadow/issues/449
 }
 
 

@@ -14,4 +14,4 @@ junit = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
 junit-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 
 [plugins]
-shadow = { id = "com.github.johnrengelman.shadow", version = "8.1.1" }
+shadow = { id = "com.gradleup.shadow", version = "8.3.5" }

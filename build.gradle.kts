@@ -31,7 +31,7 @@ dependencies {
 val agentJarDir = layout.buildDirectory.dir("generated/agent-impl-jar").get().asFile
 val copyAgentImplJar = tasks.register<Copy>("copyAgentImplJar") {
     from(agentJar) {
-        // TODO: Trailing `_` is as workaround for https://github.com/johnrengelman/shadow/issues/111 for standalone agent JAR
+        // TODO: Trailing `_` is as workaround for https://github.com/GradleUp/shadow/issues/111 for standalone agent JAR
         rename(".*", "agent-impl.jar_")
     }
     // Add package name prefix
@@ -129,12 +129,12 @@ tasks.shadowJar {
             // Main class is used for printing usage help on command line
             "Main-Class" to "marcono1234.unsafe_sanitizer.AgentMain",
 
-            // Mark as mutli-release due to multi-release dependencies, see also https://github.com/johnrengelman/shadow/issues/449
+            // Mark as multi-release due to multi-release dependencies, see also https://github.com/GradleUp/shadow/issues/449
             "Multi-Release" to "true",
         )
     }
 
-    // Exclude `module-info` from dependencies, see also https://github.com/johnrengelman/shadow/issues/729
+    // Exclude `module-info` from dependencies, see also https://github.com/GradleUp/shadow/issues/729
     exclude("META-INF/versions/*/module-info.class")
 
     // Exclude duplicated Byte Buddy classes; Byte Buddy contains the same class files for Java 5 and Java 8, but since
