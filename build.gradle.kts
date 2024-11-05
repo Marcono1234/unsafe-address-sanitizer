@@ -130,8 +130,7 @@ tasks.shadowJar {
             "Main-Class" to "marcono1234.unsafe_sanitizer.AgentMain",
 
             // Mark as mutli-release due to multi-release dependencies, see also https://github.com/johnrengelman/shadow/issues/449
-            // TODO: Currently does not work due to https://github.com/raphw/byte-buddy/issues/1724
-            // "Multi-Release" to "true",
+            "Multi-Release" to "true",
         )
     }
 
@@ -140,8 +139,7 @@ tasks.shadowJar {
 
     // Exclude duplicated Byte Buddy classes; Byte Buddy contains the same class files for Java 5 and Java 8, but since
     // this project here is using Java > 8 can omit the Java 5 classes, see also https://github.com/raphw/byte-buddy/pull/1719
-    // TODO: Currently does not work due to https://github.com/raphw/byte-buddy/issues/1724
-    // exclude("net/bytebuddy/**")
+    exclude("net/bytebuddy/**")
 }
 // Run shadow task by default
 tasks.build {
