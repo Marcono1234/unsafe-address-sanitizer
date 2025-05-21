@@ -336,6 +336,7 @@ public class UnsafeSanitizer {
                 // Need to use `RETRANSFORMATION` because the JDK classes which should be instrumented are most likely
                 // already loaded, see https://github.com/raphw/byte-buddy/issues/1564#issuecomment-1906823082
                 .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
+                .with(AgentBuilder.RedefinitionStrategy.Listener.ErrorEscalating.FAIL_FAST)
                 // (Not completely sure if `disableClassFormatChanges()` is needed, but the Byte Buddy comment above
                 //  mentions it, so use it to be safe)
                 .disableClassFormatChanges()
@@ -348,21 +349,38 @@ public class UnsafeSanitizer {
                  *  .with(AgentBuilder.TypeStrategy.Default.REDEFINE)
                  */
 
+            AgentBuilder.Listener listener = null;
             if (settings.instrumentationLogging) {
+                agentBuilder = agentBuilder.with(AgentBuilder.InstallationListener.StreamWriting.toSystemOut());
+
                 var typeNames = transforms.stream().map(TransformBuilder::getClassToTransform).map(Class::getName).toList();
 
-                var logger = new AgentBuilder.Listener.Filtering(
+                listener = new AgentBuilder.Listener.Filtering(
                     ElementMatchers.anyOf(typeNames),
                     AgentBuilder.Listener.StreamWriting.toSystemOut()
                 );
-                agentBuilder = agentBuilder.with(logger);
             }
+
+            var errorListener = new ErrorCollectingAgentListener();
+            if (listener == null) {
+                listener = errorListener;
+            } else {
+                listener = new AgentBuilder.Listener.Compound(listener, errorListener);
+            }
+            agentBuilder = agentBuilder.with(listener);
 
             for (TransformBuilder transform : transforms) {
                 agentBuilder = transform.configure(agentBuilder);
             }
 
             agentBuilder.installOn(instrumentation);
+
+            var errors = errorListener.getErrors();
+            if (!errors.isEmpty()) {
+                var exception = new RuntimeException("Failed installing agent");
+                errors.forEach(exception::addSuppressed);
+                throw exception;
+            }
 
             isInstalled = true;
         } finally {
