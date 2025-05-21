@@ -4,8 +4,12 @@ import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.AsmVisitorWrapper;
 import net.bytebuddy.description.method.MethodDescription;
+import net.bytebuddy.dynamic.scaffold.InstrumentedType;
+import net.bytebuddy.implementation.Implementation;
+import net.bytebuddy.implementation.bytecode.ByteCodeAppender;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -18,7 +22,7 @@ import static net.bytebuddy.matcher.ElementMatchers.*;
 class TransformBuilder {
     /** The class that will be transformed */
     private final Class<?> classToTransform;
-    private final List<ElementMatcher.Junction<? super MethodDescription>> methodMatchers;
+    private final List<ElementMatcher<? super MethodDescription>> methodMatchers;
     private final List<AsmVisitorWrapper.ForDeclaredMethods> visitors;
 
     public TransformBuilder(Class<?> classToTransform) {
@@ -47,7 +51,7 @@ class TransformBuilder {
     /**
      * Adds the {@code interceptor} (implemented using {@link Advice}) for all matching methods.
      */
-    public TransformBuilder addMethods(ElementMatcher.Junction<? super MethodDescription> matcher, Class<?> interceptor) {
+    public TransformBuilder addMethods(ElementMatcher<? super MethodDescription> matcher, Class<?> interceptor) {
         Objects.requireNonNull(matcher);
         Objects.requireNonNull(interceptor);
 
@@ -80,17 +84,35 @@ class TransformBuilder {
             throw new IllegalStateException("No matchers have been added");
         }
 
-        var loggingMatcher = methodMatchers.get(0);
-        for (int i = 1; i < methodMatchers.size(); i++) {
-            loggingMatcher = loggingMatcher.or(methodMatchers.get(i));
-        }
-        var loggingMatcherF = loggingMatcher;
+        var loggingMatcher = new ElementMatcher.Junction.Disjunction<>(methodMatchers);
+
+        var jvmIntrinsicAnnotation = lookUpClass("jdk.internal.vm.annotation.IntrinsicCandidate").asSubclass(Annotation.class);
+        var jvmIntrinsicMatcher = new ElementMatcher.Junction.Disjunction<>(methodMatchers)
+            .and(isAnnotatedWith(jvmIntrinsicAnnotation));
 
         return agentBuilder.type(is(classToTransform))
             .transform((builder, type, classLoader, module, protectionDomain) -> {
+                // If any of the methods use @IntrinsicCandidate, fail
+                // Otherwise JVM might replace method with intrinsic at runtime, despite the method having been transformed
+                // Could maybe also solve this by removing annotation (see https://github.com/raphw/byte-buddy/issues/917),
+                // but might not be worth it if none of the transformed methods is currently affected by this, and would
+                // have to check how JVM behaves in that case
+                builder = builder.method(jvmIntrinsicMatcher).intercept(new Implementation() {
+                    @Override
+                    public InstrumentedType prepare(InstrumentedType instrumentedType) {
+                        // Keep the type as-is
+                        return instrumentedType;
+                    }
+
+                    @Override
+                    public ByteCodeAppender appender(Target target) {
+                        throw new AssertionError(target.getInstrumentedType() + " defines method with @" + jvmIntrinsicAnnotation.getSimpleName());
+                    }
+                });
+
                 // Logging interceptor apparently has to be visited first; otherwise if other advice
                 // methods throw exception (in enter or exit), the logging interceptor is not run
-                builder = builder.visit(Advice.to(MethodLoggingInterceptor.class).on(loggingMatcherF));
+                builder = builder.visit(Advice.to(MethodLoggingInterceptor.class).on(loggingMatcher));
 
                 for (var visitor : visitors) {
                     builder = builder.visit(visitor);
