@@ -372,6 +372,13 @@ public class UnsafeSanitizerImpl {
     }
 
     public static boolean onCopy(@Nullable Object srcObj, long srcAddress, @Nullable Object destObj, long destAddress, long bytesCount) {
+        /*
+         * While Unsafe's documentation does not mention whether overlapping copies are allowed, it seems the
+         * implementation does support them, see
+         * - https://mail.openjdk.org/pipermail/nio-dev/2020-February/007046.html
+         * - https://bugs.openjdk.org/browse/JDK-8234050?focusedId=14305844#comment-14305844
+         */
+
         // If `isRequireInitializedOnCopy` perform normal access checks further below, requiring that source
         // is fully initialized
         if (!isRequireInitializedOnCopy && srcObj == null && destObj == null) {

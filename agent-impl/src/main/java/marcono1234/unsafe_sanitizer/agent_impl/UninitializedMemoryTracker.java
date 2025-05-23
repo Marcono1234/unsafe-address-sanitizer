@@ -224,7 +224,8 @@ class UninitializedMemoryTracker {
         // First determine all new sections, then perform changes
         // This allows overlapping copies; otherwise would erroneously consider section initialized
         // which was just copied there during the copy (and same for uninitialized)
-        // TODO: ^ does Unsafe.copyMemory officially support overlapping copying?
+        // Side note: Unsafe#copyMemory does not officially support overlapping copies, but the implementation
+        // apparently supports them, see also comment in UnsafeSanitizerImpl#onCopy
         List<Section> newSections = new ArrayList<>();
         
         long endAddress = Math.addExact(srcAddress, bytesCount);
