@@ -24,19 +24,10 @@ class MemoryTracker {
     //   But that would make the API of MemorySectionMap more verbose, and its logic more complicated
     private final LongSet directBufferAddresses = new LongSet();
 
-    public void enableUninitializedMemoryTracking() {
+    public void enableUninitializedMemoryTracking(boolean enabled) {
         lock.writeLock().lock();
         try {
-            sectionsMap.enableUninitializedMemoryTracking();
-        } finally {
-            lock.writeLock().unlock();
-        }
-    }
-
-    public void disableUninitializedMemoryTracking() {
-        lock.writeLock().lock();
-        try {
-            sectionsMap.disableUninitializedMemoryTracking();
+            sectionsMap.enableUninitializedMemoryTracking(enabled);
         } finally {
             lock.writeLock().unlock();
         }
@@ -65,7 +56,7 @@ class MemoryTracker {
      *      size of the allocation
      * @param trackUninitialized
      *      whether for this memory region it should be tracked if the memory is uninitialized
-     *      (if {@linkplain #enableUninitializedMemoryTracking() enabled}); if {@code false} this memory section
+     *      (if {@linkplain #enableUninitializedMemoryTracking(boolean) enabled}); if {@code false} this memory section
      *      is always considered (and required) to be initialized
      * @param isDirectBuffer
      *      whether the memory has been allocated by {@link java.nio.ByteBuffer#allocateDirect(int)}

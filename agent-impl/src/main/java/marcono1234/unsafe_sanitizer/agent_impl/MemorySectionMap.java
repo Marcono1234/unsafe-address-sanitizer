@@ -50,14 +50,14 @@ class MemorySectionMap {
         uninitializedMemoryTracker = new UninitializedMemoryTracker();
     }
 
-    public void enableUninitializedMemoryTracking() {
-        if (uninitializedMemoryTracker == null) {
-            uninitializedMemoryTracker = new UninitializedMemoryTracker();
+    public void enableUninitializedMemoryTracking(boolean enabled) {
+        if (enabled) {
+            if (uninitializedMemoryTracker == null) {
+                uninitializedMemoryTracker = new UninitializedMemoryTracker();
+            }
+        } else {
+            uninitializedMemoryTracker = null;
         }
-    }
-
-    public void disableUninitializedMemoryTracking() {
-        uninitializedMemoryTracker = null;
     }
 
     private static void checkAddress(long address) {

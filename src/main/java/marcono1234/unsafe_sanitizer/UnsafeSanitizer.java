@@ -286,9 +286,7 @@ public class UnsafeSanitizer {
             if (!settings.globalNativeMemorySanitizer) {
                 UnsafeSanitizerImpl.disableNativeMemorySanitizer();
             }
-            if (!settings.uninitializedMemoryTracking) {
-                UnsafeSanitizerImpl.disableUninitializedMemoryTracking();
-            }
+            UnsafeSanitizerImpl.enableUninitializedMemoryTracking(settings.uninitializedMemoryTracking);
             UnsafeSanitizerImpl.setErrorAction(settings.errorAction.getAgentErrorAction());
             UnsafeSanitizerImpl.setIsDebugLogging(settings.callDebugLogging);
 

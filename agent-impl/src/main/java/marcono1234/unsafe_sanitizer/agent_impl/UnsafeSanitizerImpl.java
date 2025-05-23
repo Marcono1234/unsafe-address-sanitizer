@@ -140,19 +140,11 @@ public class UnsafeSanitizerImpl {
         memoryTracker = null;
     }
 
-    private static void enableUninitializedMemoryTracking() {
-        isTrackingUninitializedMemory = true;
+    public static void enableUninitializedMemoryTracking(boolean enabled) {
+        isTrackingUninitializedMemory = enabled;
         var memoryTracker = getMemoryTracker();
         if (memoryTracker != null) {
-            memoryTracker.enableUninitializedMemoryTracking();
-        }
-    }
-
-    public static void disableUninitializedMemoryTracking() {
-        isTrackingUninitializedMemory = false;
-        var memoryTracker = getMemoryTracker();
-        if (memoryTracker != null) {
-            memoryTracker.disableUninitializedMemoryTracking();
+            memoryTracker.enableUninitializedMemoryTracking(enabled);
         }
     }
 
@@ -166,20 +158,12 @@ public class UnsafeSanitizerImpl {
     @VisibleForTesting
     public static <E extends Throwable> void withUninitializedMemoryTracking(boolean enabled, ThrowingRunnable<E> runnable) throws E {
         boolean wasEnabled = isTrackingUninitializedMemory;
-        if (enabled) {
-            enableUninitializedMemoryTracking();
-        } else {
-            disableUninitializedMemoryTracking();
-        }
+        enableUninitializedMemoryTracking(enabled);
 
         try {
             runnable.run();
         } finally {
-            if (wasEnabled) {
-                enableUninitializedMemoryTracking();
-            } else {
-                disableUninitializedMemoryTracking();
-            }
+            enableUninitializedMemoryTracking(wasEnabled);
         }
     }
 
@@ -201,7 +185,7 @@ public class UnsafeSanitizerImpl {
 
         var tracker = new MemoryTracker();
         if (trackUninitialized == null && !isTrackingUninitializedMemory || Boolean.FALSE.equals(trackUninitialized)) {
-            tracker.disableUninitializedMemoryTracking();
+            tracker.enableUninitializedMemoryTracking(false);
         }
         activeScopedMemoryTrackers.add(tracker);
 

@@ -530,7 +530,7 @@ class MemorySectionMapTest {
 
     @Test
     void disableUninitializedMemoryTracking() {
-        map.disableUninitializedMemoryTracking();
+        map.enableUninitializedMemoryTracking(false);
         map.addSection(1, 10, true);
 
         // Should not throw an exception, even though this reads uninitialized memory
