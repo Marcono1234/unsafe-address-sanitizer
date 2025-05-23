@@ -53,7 +53,7 @@ class ArrayAccessSanitizer {
             }
 
             // Use the index scale of an `Object[]`
-            bytesCount = unsafe.arrayIndexScale(arrayClass);
+            bytesCount = UnsafeAccess.arrayIndexScale(arrayClass);
         } else {
             // Trying to read primitive data from object array
             // This is technically possible, but seems error-prone, especially if there are no guarantees how
@@ -98,10 +98,10 @@ class ArrayAccessSanitizer {
         // Faster path for byte[], which is most commonly used (?)
         if (arrayClass == byte[].class) {
             baseOffset = Unsafe.ARRAY_BYTE_BASE_OFFSET;
-            indexScale = Unsafe.ARRAY_BYTE_INDEX_SCALE;
+            indexScale = UnsafeAccess.ARRAY_BYTE_INDEX_SCALE;
         } else {
             baseOffset = unsafe.arrayBaseOffset(arrayClass);
-            indexScale = unsafe.arrayIndexScale(arrayClass);
+            indexScale = UnsafeAccess.arrayIndexScale(arrayClass);
         }
 
         if (indexScale == 0) {

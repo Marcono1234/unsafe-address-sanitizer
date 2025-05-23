@@ -65,10 +65,16 @@ class FieldAccessSanitizer {
         FieldData fieldData;
         String classDisplayName;
         if (obj instanceof Class<?> c) {
-            // Object was probably obtained from `sun.misc.Unsafe#staticFieldBase`
-            // Note that this is an implementation detail of the HotSpot JVM, see
-            // https://github.com/openjdk/jdk/blob/55c1446b68db6c4734420124b5f26278389fdf2b/src/hotspot/share/prims/unsafe.cpp#L533-L553
-            // For other JVMs `staticFieldBase` could return something different
+            /*
+             * Object was probably obtained from `sun.misc.Unsafe#staticFieldBase`
+             * Note that this is an implementation detail of the HotSpot JVM, see
+             * https://github.com/openjdk/jdk/blob/55c1446b68db6c4734420124b5f26278389fdf2b/src/hotspot/share/prims/unsafe.cpp#L533-L553
+             * For other JVMs `staticFieldBase` could return something different
+             *
+             * A more reliable solution might be to intercept calls to `staticFieldBase` and `staticFieldOffset`
+             * and record their return values in the `staticFieldsCache` here. But the disadvantage is that all
+             * Unsafe calls with Object (even if null?) would have to check then if it might be a static field access.
+             */
 
             classDisplayName = c.getTypeName();
             fieldData = getStaticFieldData(c, offset);
