@@ -61,7 +61,15 @@ class ArrayAccessSanitizer {
             return reportError("Bad request for " + memorySize + " from " + arrayClass.getTypeName());
         }
 
-        return onAccessImpl(array, offset, bytesCount);
+        /*
+         * Note: `Unsafe#get` says "the results are undefined if that variable is not in fact of the type returned by this method"
+         * That would mean reading a `long` from a `byte[]` is never safe. However, it seems this can actually be safe
+         * when the access is aligned. See for example JDK's `java.nio.HeapByteBuffer#putLong`.
+         *
+         * Therefore, this only checks alignment here.
+         */
+        return AlignmentChecker.checkAlignment(array, offset, memorySize)
+            && onAccessImpl(array, offset, bytesCount);
     }
 
     public static boolean onAccess(Object obj, long offset, long bytesCount) {
@@ -114,8 +122,7 @@ class ArrayAccessSanitizer {
         if ((offset - baseOffset) % indexScale != 0) {
             return reportError("Bad aligned array access at offset " + offset + " for " + arrayClass.getTypeName());
         }
-        // TODO: Should this also check if `offset + bytesCount` is aligned? But `Unsafe` documentation does not
-        //   seem to mention that
+        // TODO: Should this also check if `offset + bytesCount` is aligned (e.g. reading a byte from a long[])?
 
         return true;
     }

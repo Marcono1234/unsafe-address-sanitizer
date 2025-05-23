@@ -112,6 +112,14 @@ public class UnsafeSanitizerImpl {
         return getLastErrorRefImpl();
     }
 
+    // Note: Could consider adding an 'auto' mode which enables the check depending on the value
+    // of `jdk.internal.misc.Unsafe#unalignedAccess()`; however that assumes the sanitizer is run
+    // on the same platform which is also running the application in production, which most likely
+    // is not guaranteed to be the case
+    public static void setCheckAddressAlignment(boolean checkAlignment) {
+        AlignmentChecker.checkAlignment = checkAlignment;
+    }
+
     // TODO: Add corresponding method in public `UnsafeSanitizer`
     /**
      * Sets whether for copying native memory to native memory the source must be fully initialized.
@@ -338,8 +346,12 @@ public class UnsafeSanitizerImpl {
 
         if (obj == null) {
             var memoryTracker = getMemoryTracker();
-            return memoryTracker == null
-                || memoryTracker.onAccess(address, size.getBytesCount(), isRead);
+            // Always get bytes count, even if memory tracker is not set, to fail when reading or writing Object to
+            // native memory
+            int bytesCount = size.getBytesCount();
+
+            return AlignmentChecker.checkAlignment(obj, address, size)
+                && (memoryTracker == null || memoryTracker.onAccess(address, bytesCount, isRead));
         } else if (obj.getClass().isArray()) {
             return ArrayAccessSanitizer.onAccess(obj, address, size, writtenObject);
         } else {

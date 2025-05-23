@@ -66,7 +66,7 @@ class FieldAccessSanitizer {
         String classDisplayName;
         if (obj instanceof Class<?> c) {
             // Object was probably obtained from `sun.misc.Unsafe#staticFieldBase`
-            // Note that this is an implementation detail of the Hotspot JVM, see
+            // Note that this is an implementation detail of the HotSpot JVM, see
             // https://github.com/openjdk/jdk/blob/55c1446b68db6c4734420124b5f26278389fdf2b/src/hotspot/share/prims/unsafe.cpp#L533-L553
             // For other JVMs `staticFieldBase` could return something different
 
@@ -94,6 +94,8 @@ class FieldAccessSanitizer {
 
         // TODO: Should permit reading smaller? E.g. read `int` as `byte`? (but have to differentiate here then
         //   between read and write)
+        //   But `Unsafe#getInt` says "the results are undefined if that variable is not in fact of the type returned by this method"
+        //   (though this might be a bit cautious)
         MemorySize fieldSize = fieldData.fieldSize;
         if (fieldSize != size) {
             return reportError("Field '" + getFieldDisplayString(fieldData.field) + "' at offset " + offset

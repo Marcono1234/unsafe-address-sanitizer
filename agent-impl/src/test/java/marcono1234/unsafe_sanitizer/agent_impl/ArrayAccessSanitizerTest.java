@@ -105,11 +105,19 @@ class ArrayAccessSanitizerTest {
         }
 
         {
-            var a = new byte[2];
-            long offset = ARRAY_BYTE_BASE_OFFSET + ARRAY_BYTE_INDEX_SCALE;
+            var shift = 1;  // shift offset to ensure validation is performed when offset > baseOffset
+            var a = new byte[shift + Long.BYTES - 1];  // large enough to account for alignment
+            long offset = ARRAY_BYTE_BASE_OFFSET + shift;
+
+            // Ensure that offset is aligned to avoid triggering sanitizer error due to unaligned access
+            long alignmentDiff = offset % Long.BYTES;
+            long alignedOffset = alignmentDiff == 0 ? offset : offset + Long.BYTES - alignmentDiff;
+
+            var memorySize = MemorySize.fromClass(long.class);
+
             assertThrows(
-                () -> ArrayAccessSanitizer.onAccess(a, offset, MemorySize.BYTE_2),
-                "Bad array access at offset " + offset + ", size " + MemorySize.BYTE_2.getBytesCount() + "; max offset is " + (ARRAY_BYTE_BASE_OFFSET + a.length * ARRAY_BYTE_INDEX_SCALE)
+                () -> ArrayAccessSanitizer.onAccess(a, alignedOffset, memorySize),
+                "Bad array access at offset " + alignedOffset + ", size " + memorySize.getBytesCount() + "; max offset is " + (ARRAY_BYTE_BASE_OFFSET + a.length * ARRAY_BYTE_INDEX_SCALE)
             );
         }
 

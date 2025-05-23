@@ -22,8 +22,8 @@ class AgentTest {
     @Test
     void success() {
         long a = unsafe.allocateMemory(10);
-        unsafe.putInt(a + 6, 1);
-        assertEquals(1, unsafe.getInt(a + 6));
+        unsafe.putByte(a + 9, (byte) 1);
+        assertEquals((byte) 1, unsafe.getByte(a + 9));
         unsafe.freeMemory(a);
     }
 
@@ -33,7 +33,7 @@ class AgentTest {
         assertEquals("Cannot free at address -1", error.getMessage());
 
         long a = unsafe.allocateMemory(3);
-        error = assertThrows(Error.class, () -> unsafe.putInt(a, 1));
+        error = assertThrows(Error.class, () -> unsafe.setMemory(a, 4, (byte) 1));
         assertEquals("Size 4 exceeds actual size 3 at " + a, error.getMessage());
         unsafe.freeMemory(a);
     }

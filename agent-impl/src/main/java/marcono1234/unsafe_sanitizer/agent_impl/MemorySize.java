@@ -5,7 +5,7 @@ import sun.misc.Unsafe;
 /**
  * Size of a memory access which is using a primitive or {@code Object} value.
  */
-// This assumes that for `Unsafe` method only size of data type matters, and it is for example possible to
+// This assumes that for `Unsafe` methods only size of data type matters, and it is for example possible to
 // read a `float` (= 4 bytes) as `int` (= 4 bytes).
 public enum MemorySize {
     BOOLEAN,
@@ -32,10 +32,11 @@ public enum MemorySize {
             case BYTE_8 -> 8;
             case ADDRESS -> Unsafe.ADDRESS_SIZE;
             case OBJECT -> {
-                // It looks like it is for example possible to store an Object in a `byte[]`; though not sure if
-                // that is safe and if there are guarantees how large an Object reference actually is
-                // As fallback use `ARRAY_OBJECT_INDEX_SCALE`; that might be wrong though
+                // It looks like it is for example possible to store an Object reference in a `byte[]`; though not
+                // sure if that is safe and if there are guarantees how large an Object reference actually is
+                // Doing this most likely breaks garbage collection for the object
                 BadMemoryAccessError.reportError("Using Object in the context of bytes");
+                // As fallback use `ARRAY_OBJECT_INDEX_SCALE`; that might be wrong though
                 yield Unsafe.ARRAY_OBJECT_INDEX_SCALE;
             }
         };

@@ -23,6 +23,7 @@ class AgentMainTest {
         assertEquals(AgentSettings.defaultSettings(), AgentMain.parseAgentSettings("call-debug-logging=false"));
 
         String agentArgs = "instrumentation-logging=false"
+            + ",address-alignment-checking=false"
             + ",global-native-memory-sanitizer=false"
             + ",uninitialized-memory-tracking=false"
             + ",error-action=print-skip"

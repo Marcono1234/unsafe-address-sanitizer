@@ -62,6 +62,9 @@ public class UnsafeSanitizer {
      *
      * @param instrumentationLogging
      *      Whether to log information during instrumentation. Can be useful for troubleshooting.
+     * @param addressAlignmentChecking
+     *      Whether to check if the native address is aligned when reading or writing primitive values.
+     *      It depends on the operating system and CPU whether unaligned access is safe or leads to undefined behavior.
      * @param globalNativeMemorySanitizer
      *      Whether to enable the native memory sanitizer globally.
      *
@@ -86,6 +89,7 @@ public class UnsafeSanitizer {
      */
     public record AgentSettings(
         boolean instrumentationLogging,
+        boolean addressAlignmentChecking,
         boolean globalNativeMemorySanitizer,
         boolean uninitializedMemoryTracking,
         ErrorAction errorAction,
@@ -99,6 +103,7 @@ public class UnsafeSanitizer {
          * Creates 'default' agent settings suitable for most use cases. The settings have the following values:
          * <ul>
          *     <li>{@link #instrumentationLogging()}: true</li>
+         *     <li>{@link #addressAlignmentChecking()}: true</li>
          *     <li>{@link #globalNativeMemorySanitizer()}: true</li>
          *     <li>{@link #uninitializedMemoryTracking()}: true</li>
          *     <li>{@link #errorAction()}: {@link ErrorAction#THROW}</li>
@@ -113,6 +118,7 @@ public class UnsafeSanitizer {
          */
         public static AgentSettings defaultSettings() {
             return new AgentSettings(
+                true,
                 true,
                 // Note: If this default for `globalNativeMemorySanitizer` causes issues even for `premain` when
                 // there have already been allocations before, leading to false positive errors, could consider
@@ -131,6 +137,21 @@ public class UnsafeSanitizer {
         public AgentSettings withInstrumentationLogging(boolean instrumentationLogging) {
             return new AgentSettings(
                 instrumentationLogging,
+                addressAlignmentChecking,
+                globalNativeMemorySanitizer,
+                uninitializedMemoryTracking,
+                errorAction,
+                callDebugLogging
+            );
+        }
+
+        /**
+         * Creates new agent settings with modified {@link #addressAlignmentChecking()} value.
+         */
+        public AgentSettings withAddressAlignmentChecking(boolean addressAlignmentChecking) {
+            return new AgentSettings(
+                instrumentationLogging,
+                addressAlignmentChecking,
                 globalNativeMemorySanitizer,
                 uninitializedMemoryTracking,
                 errorAction,
@@ -144,6 +165,7 @@ public class UnsafeSanitizer {
         public AgentSettings withGlobalNativeMemorySanitizer(boolean globalNativeMemorySanitizer) {
             return new AgentSettings(
                 instrumentationLogging,
+                addressAlignmentChecking,
                 globalNativeMemorySanitizer,
                 uninitializedMemoryTracking,
                 errorAction,
@@ -157,6 +179,7 @@ public class UnsafeSanitizer {
         public AgentSettings withUninitializedMemoryTracking(boolean uninitializedMemoryTracking) {
             return new AgentSettings(
                 instrumentationLogging,
+                addressAlignmentChecking,
                 globalNativeMemorySanitizer,
                 uninitializedMemoryTracking,
                 errorAction,
@@ -170,6 +193,7 @@ public class UnsafeSanitizer {
         public AgentSettings withErrorAction(ErrorAction errorAction) {
             return new AgentSettings(
                 instrumentationLogging,
+                addressAlignmentChecking,
                 globalNativeMemorySanitizer,
                 uninitializedMemoryTracking,
                 errorAction,
@@ -183,6 +207,7 @@ public class UnsafeSanitizer {
         public AgentSettings withCallDebugLogging(boolean callDebugLogging) {
             return new AgentSettings(
                 instrumentationLogging,
+                addressAlignmentChecking,
                 globalNativeMemorySanitizer,
                 uninitializedMemoryTracking,
                 errorAction,
@@ -257,6 +282,7 @@ public class UnsafeSanitizer {
             UnsafeSanitizer.agentSettings = settings;
             addAgentToBootstrapClasspath(instrumentation);
 
+            UnsafeSanitizerImpl.setCheckAddressAlignment(settings.addressAlignmentChecking);
             if (!settings.globalNativeMemorySanitizer) {
                 UnsafeSanitizerImpl.disableNativeMemorySanitizer();
             }

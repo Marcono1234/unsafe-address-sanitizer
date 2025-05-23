@@ -68,7 +68,7 @@ sanitizer to react to invalid memory access before it occurs, and before the JVM
    - Disabling native memory access sanitization (`AgentSettings.withGlobalNativeMemorySanitizer(false)`), and
      optionally instead using `UnsafeSanitizer#withScopedNativeMemoryTracking`
    - Manually registering the allocated memory with `UnsafeSanitizer#registerAllocatedMemory`
-- This library has mainly been written for the Hotspot JVM\
+- This library has mainly been written for the HotSpot JVM\
   It might not work for other JVMs, but bug reports for this are appreciated!
 
 ## Usage

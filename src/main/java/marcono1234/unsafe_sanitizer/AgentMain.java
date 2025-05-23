@@ -204,6 +204,7 @@ class AgentMain {
     // Don't use `Map.of` because the iteration order is unspecified
     private static final Map<String, AgentOption<?>> agentOptions = mapOf(
         entry("instrumentation-logging", new AgentOption<>(BOOLEAN_PARSER, true, AgentSettings::withInstrumentationLogging)),
+        entry("address-alignment-checking", new AgentOption<>(BOOLEAN_PARSER, true, AgentSettings::withAddressAlignmentChecking)),
         entry("global-native-memory-sanitizer", new AgentOption<>(BOOLEAN_PARSER, true, AgentSettings::withGlobalNativeMemorySanitizer)),
         entry("uninitialized-memory-tracking", new AgentOption<>(BOOLEAN_PARSER, true, AgentSettings::withUninitializedMemoryTracking)),
         entry("error-action", new AgentOption<>(ERROR_ACTION_PARSER, ErrorAction.THROW, AgentSettings::withErrorAction)),
