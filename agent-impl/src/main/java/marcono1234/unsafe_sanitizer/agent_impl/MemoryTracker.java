@@ -25,11 +25,12 @@ class MemoryTracker {
     private final LongSet directBufferAddresses = new LongSet();
 
     public void enableUninitializedMemoryTracking(boolean enabled) {
-        lock.writeLock().lock();
+        var lock = this.lock.writeLock();
+        lock.lock();
         try {
             sectionsMap.enableUninitializedMemoryTracking(enabled);
         } finally {
-            lock.writeLock().unlock();
+            lock.unlock();
         }
     }
 
@@ -84,7 +85,8 @@ class MemoryTracker {
             return false;
         }
 
-        lock.writeLock().lock();
+        var lock = this.lock.writeLock();
+        lock.lock();
         try {
             sectionsMap.addSection(address, bytesCount, trackUninitialized);
 
@@ -97,7 +99,7 @@ class MemoryTracker {
         } catch (IllegalArgumentException e) {
             return reportError(e);
         } finally {
-            lock.writeLock().unlock();
+            lock.unlock();
         }
         return true;
     }
@@ -106,14 +108,19 @@ class MemoryTracker {
      * Verifies that a memory section starts at the address and can be reallocated.
      * Does not check if the memory is initialized.
      */
+    // TODO: There could be a race condition when multiple threads try to reallocate for the same address
+    //   But cannot easily be solved because reallocation tracking needs to move memory, so cannot
+    //   free the memory here in this method yet because the new address is not known yet
     public boolean verifyCanReallocate(long address) {
         if (address <= 0) {
             return reportError("Invalid address: " + address);
         }
 
-        lock.readLock().lock();
+        var lock = this.lock.readLock();
+        lock.lock();
         try {
             if (directBufferAddresses.contains(address)) {
+                // Not allowed because ByteBuffer would then have dangling pointer to original memory address
                 return reportError("Trying to reallocate memory of direct ByteBuffer at address " + address);
             }
 
@@ -124,7 +131,7 @@ class MemoryTracker {
         } catch (IllegalArgumentException e) {
             return reportError(e);
         } finally {
-            lock.readLock().unlock();
+            lock.unlock();
         }
     }
 
@@ -140,13 +147,14 @@ class MemoryTracker {
             return reportError("Invalid address: " + address);
         }
 
-        lock.readLock().lock();
+        var lock = this.lock.readLock();
+        lock.lock();
         try {
             sectionsMap.checkIsInSection(address, isZeroSized);
         } catch (IllegalArgumentException e) {
             return reportError(e);
         } finally {
-            lock.readLock().unlock();
+            lock.unlock();
         }
         return true;
     }
@@ -157,13 +165,14 @@ class MemoryTracker {
             return tryFreeMemory(oldAddress, false) || reportError("Failed freeing memory at address " + oldAddress);
         }
 
-        lock.writeLock().lock();
+        var lock = this.lock.writeLock();
+        lock.lock();
         try {
             sectionsMap.moveSection(oldAddress, newAddress, newBytesCount);
         } catch (IllegalArgumentException e) {
             return reportError(e);
         } finally {
-            lock.writeLock().unlock();
+            lock.unlock();
         }
         return true;
     }
@@ -183,7 +192,8 @@ class MemoryTracker {
             return false;
         }
 
-        lock.writeLock().lock();
+        var lock = this.lock.writeLock();
+        lock.lock();
         try {
             if (!isDirectBufferCleaner && directBufferAddresses.contains(address)) {
                 // Don't permit manually freeing memory of direct ByteBuffer because its cleaner would be
@@ -198,7 +208,7 @@ class MemoryTracker {
             }
             return sectionsMap.tryRemoveSection(address);
         } finally {
-            lock.writeLock().unlock();
+            lock.unlock();
         }
     }
 
@@ -209,13 +219,15 @@ class MemoryTracker {
             return false;
         }
 
-        lock.readLock().lock();
+        // 'write' access marks memory as initialized, therefore need write-lock in that case
+        var lock = isRead ? this.lock.readLock() : this.lock.writeLock();
+        lock.lock();
         try {
             sectionsMap.performAccess(address, bytesCount, isRead);
         } catch (IllegalArgumentException e) {
             return reportError(e);
         } finally {
-            lock.readLock().unlock();
+            lock.unlock();
         }
         return true;
     }
@@ -240,23 +252,25 @@ class MemoryTracker {
             return false;
         }
 
-        lock.writeLock().lock();
+        var lock = this.lock.writeLock();
+        lock.lock();
         try {
             sectionsMap.performCopyAccess(srcAddress, destAddress, bytesCount);
         } catch (IllegalArgumentException e) {
             return reportError(e);
         } finally {
-            lock.writeLock().unlock();
+            lock.unlock();
         }
         return true;
     }
 
     public boolean hasAllocations() {
-        lock.readLock().lock();
+        var lock = this.lock.readLock();
+        lock.lock();
         try {
             return !sectionsMap.isEmpty();
         } finally {
-            lock.readLock().unlock();
+            lock.unlock();
         }
     }
 
@@ -266,9 +280,12 @@ class MemoryTracker {
      *      not try to free the memory
      */
     public void checkEverythingFreed(boolean clearSections) {
-        lock.readLock().lock();
+        var lock = clearSections ? this.lock.writeLock() : this.lock.readLock();
+        lock.lock();
         try {
             var sections = sectionsMap.getAllSections();
+            // Clearing sections is for unblocking subsequent callers: while this call will fail if there are
+            // remaining sections, subsequent calls won't fail because the sections have been cleared
             if (clearSections) {
                 sectionsMap.clearAllSections();
                 directBufferAddresses.clear();
@@ -277,7 +294,7 @@ class MemoryTracker {
                 throw new IllegalStateException("Still contains the following sections: " + sections);
             }
         } finally {
-            lock.readLock().unlock();
+            lock.unlock();
         }
     }
 }
