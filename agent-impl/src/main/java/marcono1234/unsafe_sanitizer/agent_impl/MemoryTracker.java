@@ -68,9 +68,8 @@ class MemoryTracker {
      *      {@linkplain UnsafeSanitizerImpl#setErrorAction(AgentErrorAction) configured} to throw on bad memory access)
      */
     public boolean onAllocatedMemory(long address, long bytesCount, boolean trackUninitialized, boolean isDirectBuffer) {
-        // At least `Unsafe.reallocateMemory` says result address will be zero if the size is zero,
-        // `Unsafe.unsafe.allocateMemory` says result will never be zero, but it actually seems to
-        // behave the same way as `reallocateMemory`
+        // Unsafe methods `allocateMemory` and `reallocateMemory` return address 0 if the requested size is 0
+        // (note that for `allocateMemory` the documentation was incorrect regarding this, see https://bugs.openjdk.org/browse/JDK-8325149)
         if (address == 0 && bytesCount == 0) {
             return true;
         }
