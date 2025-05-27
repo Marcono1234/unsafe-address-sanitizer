@@ -366,9 +366,6 @@ class UnsafeThrowErrorTest {
             assertEquals(3, unsafe.getByte(b, offset));
             unsafe.putByte(b, offset, (byte) 4);
             assertEquals(4, unsafe.getByte(b, offset));
-
-            // TODO: Is this allowed?
-            // assertEquals("TODO", unsafe.getInt(b, ARRAY_BYTE_BASE_OFFSET));
         });
 
         assertBadMemoryAccess(() -> unsafe.getByte(b, 0));
