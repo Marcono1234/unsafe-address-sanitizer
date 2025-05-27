@@ -14,7 +14,12 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Run on Linux and Windows since JVM and Unsafe behavior might differ between OS
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    name: Build (${{ matrix.os }})
     steps:
     - name: Check out sources
       uses: actions/checkout@v4
