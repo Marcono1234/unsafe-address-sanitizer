@@ -77,7 +77,6 @@ class MemoryTracker {
         // TODO: Maybe these should throw AssertionError or similar, assuming that `Unsafe` never returns incorrect
         //   results for successful allocation
         //   Instead what could happen is that this sanitizer misses calls which free memory
-
         if (address <= 0) {
             return reportError("Invalid address: " + address);
         } else if (!verifyValidBytesCount(bytesCount)) {
@@ -141,7 +140,7 @@ class MemoryTracker {
      * @param isZeroSized
      *      if {@code true} also allows the address right behind a section, i.e. an 'exclusive end address'
      */
-    public boolean verifyValidAddress(long address, boolean isZeroSized) {
+    public boolean verifyIsInAllocation(long address, boolean isZeroSized) {
         if (address <= 0) {
             return reportError("Invalid address: " + address);
         }
@@ -181,14 +180,14 @@ class MemoryTracker {
      *      whether this is called by the direct {@link java.nio.ByteBuffer} cleaner
      *
      * @return true if memory could be freed at the given address, false otherwise;
-     *      does not throw an error if freeing memory failed
+     *      does not throw an error if there is no memory section at the given address
      */
     public boolean tryFreeMemory(long address, boolean isDirectBufferCleaner) {
         if (address == 0) {
             return true;
         }
         if (address < 0) {
-            return false;
+            return reportError("Invalid address: " + address);
         }
 
         var lock = this.lock.writeLock();
@@ -239,8 +238,8 @@ class MemoryTracker {
             // Allow address 0; this assumes that user code might first call `Unsafe#allocateMemory` and then uses
             // the returned address as argument to `copyMemory`;
             // if the bytes count is 0, then `allocateMemory` will return 0 as address
-            return (srcAddress == 0 || verifyValidAddress(srcAddress, isZeroSized))
-                && (destAddress == 0 || verifyValidAddress(destAddress, isZeroSized));
+            return (srcAddress == 0 || verifyIsInAllocation(srcAddress, isZeroSized))
+                && (destAddress == 0 || verifyIsInAllocation(destAddress, isZeroSized));
         }
 
         if (srcAddress <= 0) {

@@ -226,7 +226,7 @@ public class UnsafeSanitizerImpl {
         // the "into" sounds like an address representing an 'exclusive end address' (= offset + size) is not valid
         boolean isZeroSized = false;
         return memoryTracker == null
-            || memoryTracker.verifyValidAddress(address, isZeroSized);
+            || memoryTracker.verifyIsInAllocation(address, isZeroSized);
     }
 
     public static boolean verifyValidAllocationBytesCount(long bytesCount) {

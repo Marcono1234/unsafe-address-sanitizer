@@ -93,19 +93,23 @@ class UnsafeThrowErrorTest {
 
     @Test
     void free_bad() {
-        assertBadMemoryAccess(() -> unsafe.freeMemory(-1));
-        assertBadMemoryAccess(() -> {
+        var e = assertBadMemoryAccess(() -> unsafe.freeMemory(-1));
+        assertEquals("Invalid address: -1", e.getMessage());
+
+        e = assertBadMemoryAccess(() -> {
             // Assumes that no allocation has been performed at this address
             unsafe.freeMemory(1);
         });
+        assertEquals("Cannot free at address 1", e.getMessage());
 
         {
             long a = allocateMemory(10);
             freeMemory(a);
-            assertBadMemoryAccess(() -> {
+            e = assertBadMemoryAccess(() -> {
                 // Double free
                 unsafe.freeMemory(a);
             });
+            assertEquals("Cannot free at address " + a, e.getMessage());
         }
     }
 

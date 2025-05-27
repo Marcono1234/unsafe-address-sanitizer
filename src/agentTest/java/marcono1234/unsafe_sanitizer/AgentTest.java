@@ -30,7 +30,7 @@ class AgentTest {
     @Test
     void error() {
         var error = assertThrows(Error.class, () -> unsafe.freeMemory(-1));
-        assertEquals("Cannot free at address -1", error.getMessage());
+        assertEquals("Invalid address: -1", error.getMessage());
 
         long a = unsafe.allocateMemory(3);
         error = assertThrows(Error.class, () -> unsafe.setMemory(a, 4, (byte) 1));
