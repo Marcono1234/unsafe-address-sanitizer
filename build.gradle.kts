@@ -146,6 +146,22 @@ tasks.build {
     dependsOn(tasks.shadowJar)
 }
 
+tasks.javadoc {
+    options {
+        // Cast to standard doclet options, see https://github.com/gradle/gradle/issues/7038#issuecomment-448294937
+        this as StandardJavadocDocletOptions
+
+        encoding = "UTF-8"
+        // Enable doclint, but ignore warnings for missing tags, see
+        // https://docs.oracle.com/en/java/javase/17/docs/specs/man/javadoc.html#additional-options-provided-by-the-standard-doclet
+        // The Gradle option methods are rather misleading, but a boolean `true` value just makes sure the flag
+        // is passed to javadoc, see https://github.com/gradle/gradle/issues/2354
+        // TODO: Maybe in the future suppress the lint selectively for the affected elements, see https://bugs.openjdk.org/browse/JDK-8274926
+        addBooleanOption("Xdoclint:all,-missing", true)
+        addBooleanOption("Werror", true)
+    }
+}
+
 
 java {
     // Publish sources and javadoc

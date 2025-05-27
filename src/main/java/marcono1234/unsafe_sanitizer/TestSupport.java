@@ -130,6 +130,8 @@ public class TestSupport {
      * <p>If an unexpected bad memory access occurs, an {@link AssertionError} will be thrown and the
      * {@linkplain UnsafeSanitizer#getLastError() last error} will be cleared automatically.
      *
+     * @param <T>
+     *      result type of the supplier
      * @throws IllegalStateException
      *      if the agent has not been installed yet
      * @throws IllegalStateException
