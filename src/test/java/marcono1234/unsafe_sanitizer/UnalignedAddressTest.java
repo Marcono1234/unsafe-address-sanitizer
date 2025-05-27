@@ -213,44 +213,43 @@ class UnalignedAddressTest {
     @Test
     void aligned_native() {
         assertNoBadMemoryAccess(() -> {
-            var originalAddress = allocateMemory(Long.BYTES * 3); // large enough to account for alignment, and offset in test
-            var alignedAddress = alignAddress(originalAddress, Long.BYTES);
+            var address = allocateMemory(Long.BYTES * 2);
             
-            unsafe.putByte(alignedAddress, (byte) 1);
-            assertEquals((byte) 1, unsafe.getByte(alignedAddress));
+            unsafe.putByte(address, (byte) 1);
+            assertEquals((byte) 1, unsafe.getByte(address));
 
-            unsafe.putShort(alignedAddress, (short) 2);
-            assertEquals((short) 2, unsafe.getShort(alignedAddress));
+            unsafe.putShort(address, (short) 2);
+            assertEquals((short) 2, unsafe.getShort(address));
 
-            unsafe.putShort(alignedAddress + Short.BYTES, (short) 3);
-            assertEquals((short) 3, unsafe.getShort(alignedAddress + Short.BYTES));
+            unsafe.putShort(address + Short.BYTES, (short) 3);
+            assertEquals((short) 3, unsafe.getShort(address + Short.BYTES));
 
-            unsafe.putInt(alignedAddress, 4);
-            assertEquals(4, unsafe.getInt(alignedAddress));
+            unsafe.putInt(address, 4);
+            assertEquals(4, unsafe.getInt(address));
 
-            unsafe.putInt(alignedAddress + Integer.BYTES, 5);
-            assertEquals(5, unsafe.getInt(alignedAddress + Integer.BYTES));
+            unsafe.putInt(address + Integer.BYTES, 5);
+            assertEquals(5, unsafe.getInt(address + Integer.BYTES));
 
-            unsafe.putLong(alignedAddress, 6);
-            assertEquals(6, unsafe.getLong(alignedAddress));
+            unsafe.putLong(address, 6);
+            assertEquals(6, unsafe.getLong(address));
 
-            unsafe.putLong(alignedAddress + Long.BYTES, 7);
-            assertEquals(7, unsafe.getLong(alignedAddress + Long.BYTES));
+            unsafe.putLong(address + Long.BYTES, 7);
+            assertEquals(7, unsafe.getLong(address + Long.BYTES));
 
-            freeMemory(originalAddress);
+            freeMemory(address);
         });
 
         assertNoBadMemoryAccess(() -> {
-            var originalAddress = allocateMemory(Unsafe.ADDRESS_SIZE * 3L); // large enough to account for alignment, and offset in test
-            var alignedAddress = alignAddress(originalAddress, Unsafe.ADDRESS_SIZE);
+            var address = allocateMemory(Unsafe.ADDRESS_SIZE * 2L);
+            var addressValue = address + 1;  // arbitrary address
             
-            unsafe.putAddress(alignedAddress, originalAddress);
-            assertEquals(originalAddress, unsafe.getAddress(alignedAddress));
+            unsafe.putAddress(address, addressValue);
+            assertEquals(addressValue, unsafe.getAddress(address));
 
-            unsafe.putAddress(alignedAddress + Unsafe.ADDRESS_SIZE, originalAddress);
-            assertEquals(originalAddress, unsafe.getAddress(alignedAddress + Unsafe.ADDRESS_SIZE));
+            unsafe.putAddress(address + Unsafe.ADDRESS_SIZE, addressValue);
+            assertEquals(addressValue, unsafe.getAddress(address + Unsafe.ADDRESS_SIZE));
 
-            freeMemory(originalAddress);
+            freeMemory(address);
         });
             
         
@@ -289,8 +288,7 @@ class UnalignedAddressTest {
     @Test
     void unaligned_native() {
         {
-            var originalAddress = allocateMemory(Long.BYTES * 3L); // large enough to account for alignment, and offset in test
-            var alignedAddress = alignAddress(originalAddress, Long.BYTES);
+            var alignedAddress = allocateMemory(Long.BYTES * 2L);
             var unalignedAddress = alignedAddress + 1;
 
             // short
@@ -322,33 +320,32 @@ class UnalignedAddressTest {
                 assertEquals("Address " + address + " is not aligned by 8", e.getMessage());
             }
 
-            freeMemory(originalAddress);
+            freeMemory(alignedAddress);
         }
 
         {
-            var originalAddress = allocateMemory(Unsafe.ADDRESS_SIZE * 3L); // large enough to account for alignment, and offset in test
-            var alignedAddress = alignAddress(originalAddress, Unsafe.ADDRESS_SIZE);
+            var alignedAddress = allocateMemory(Unsafe.ADDRESS_SIZE * 2L);
             var unalignedAddress = alignedAddress + 1;
 
             for (int i = 0; i < Unsafe.ADDRESS_SIZE - 1; i++) {
                 long address = unalignedAddress + i;
 
-                var e = assertBadMemoryAccess(() -> unsafe.putAddress(address, originalAddress));
+                var addressValue = alignedAddress + 1;  // arbitrary address
+                var e = assertBadMemoryAccess(() -> unsafe.putAddress(address, addressValue));
                 assertEquals("Address " + address + " is not aligned by " + Unsafe.ADDRESS_SIZE, e.getMessage());
 
                 e = assertBadMemoryAccess(() -> unsafe.getAddress(address));
                 assertEquals("Address " + address + " is not aligned by " + Unsafe.ADDRESS_SIZE, e.getMessage());
             }
 
-            freeMemory(originalAddress);
+            freeMemory(alignedAddress);
         }
     }
 
     // TODO: Guard this test with a check if the current platform supports unaligned access, to avoid a crash?
     @Test
     void unaligned_native_notChecked() {
-        var originalAddress = allocateMemory(Long.BYTES * 2L);
-        var alignedAddress = alignAddress(originalAddress, Long.BYTES);
+        var alignedAddress = allocateMemory(Long.BYTES * 2L);
         var unalignedAddress = alignedAddress + 1;
 
         // Verify that by default unaligned access is checked
@@ -362,6 +359,6 @@ class UnalignedAddressTest {
             UnsafeSanitizerImpl.setCheckAddressAlignment(true);
         }
 
-        freeMemory(originalAddress);
+        freeMemory(alignedAddress);
     }
 }
