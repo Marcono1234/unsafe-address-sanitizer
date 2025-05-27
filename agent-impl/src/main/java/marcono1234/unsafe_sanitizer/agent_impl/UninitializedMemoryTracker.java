@@ -52,18 +52,18 @@ class UninitializedMemoryTracker {
             throw new IllegalArgumentException("Invalid bytes count: " + bytesCount);
         }
     }
-    
+
     private void enlargeExistingSection(int index, long address, long newBytesCount) {
         // Simple case for enlarging last section
         if (index == count - 1) {
             sizes[index] = newBytesCount;
             return;
         }
-        
+
         long endAddress = Math.addExact(address, newBytesCount);
         // End index (inclusive) of existing sections which should be merged with the new one
         int endIndex = Arrays.binarySearch(addresses, index + 1, count, endAddress);
-        
+
         if (endIndex >= 0) {
             // Merge with adjacent section
             newBytesCount = Math.addExact(newBytesCount, sizes[endIndex]);
@@ -74,7 +74,7 @@ class UninitializedMemoryTracker {
                 long previousAddress = addresses[endIndex];
                 long previousSize = sizes[endIndex];
                 long previousEndAddress = Math.addExact(previousAddress, previousSize);
-                
+
                 // Check if new section has to be extended
                 if (previousEndAddress > endAddress) {
                     newBytesCount = Math.addExact(newBytesCount, previousEndAddress - endAddress);
@@ -83,12 +83,12 @@ class UninitializedMemoryTracker {
         }
 
         sizes[index] = newBytesCount;
-        
+
         // Check if there is no need to merge or remove subsequent sections
         if (index == endIndex) {
             return;
         }
-        
+
         // Remove merged sections by shifting subsequent sections
         int shiftCount = count - endIndex - 1;
         if (shiftCount > 0) {
@@ -99,7 +99,7 @@ class UninitializedMemoryTracker {
         count -= (endIndex - index);
         checkReduceCapacity();
     }
-    
+
     private void checkIncreaseCapacity() {
         if (count >= addresses.length) {
             int newCapacity = count * 2;
@@ -129,7 +129,7 @@ class UninitializedMemoryTracker {
             count++;
             return;
         }
-        
+
         long endAddress = Math.addExact(address, bytesCount);
         // End index (inclusive) of existing sections which should be merged with the new one
         int endIndex = Arrays.binarySearch(addresses, index, count, endAddress);
@@ -157,7 +157,7 @@ class UninitializedMemoryTracker {
         // Insert new section
         if (removeCount == -1) {
             checkIncreaseCapacity();
-            
+
             // Shift subsequent sections
             int shiftCount = count - index;
             System.arraycopy(addresses, index, addresses, index + 1, shiftCount);
@@ -173,7 +173,7 @@ class UninitializedMemoryTracker {
             }
         }
         // Otherwise just overwrite existing section
-        
+
         addresses[index] = address;
         sizes[index] = bytesCount;
         count -= removeCount;
@@ -183,7 +183,7 @@ class UninitializedMemoryTracker {
     public void setInitialized(long address, long bytesCount) {
         checkAddress(address);
         checkBytesCount(bytesCount);
-        
+
         int startIndex = Arrays.binarySearch(addresses, 0, count, address);
         if (startIndex >= 0) {
             long size = sizes[startIndex];
@@ -193,13 +193,13 @@ class UninitializedMemoryTracker {
             }
             return;
         }
-        
+
         startIndex = -(startIndex + 1);
         if (startIndex == 0) {
             insertNewSection(startIndex, address, bytesCount);
             return;
         }
-        
+
         int previousIndex = startIndex - 1;
         long previousAddress = addresses[previousIndex];
         long previousSize = sizes[previousIndex];
@@ -227,7 +227,7 @@ class UninitializedMemoryTracker {
         // Side note: Unsafe#copyMemory does not officially support overlapping copies, but the implementation
         // apparently supports them, see also comment in UnsafeSanitizerImpl#onCopy
         List<Section> newSections = new ArrayList<>();
-        
+
         long endAddress = Math.addExact(srcAddress, bytesCount);
         int startIndex = Arrays.binarySearch(addresses, 0, count, srcAddress);
         if (startIndex < 0) {
@@ -248,7 +248,7 @@ class UninitializedMemoryTracker {
                 }
             }
         }
-        
+
         int endIndex = Arrays.binarySearch(addresses, startIndex, count, endAddress);
         if (endIndex < 0) {
             endIndex = -(endIndex + 1);
@@ -321,11 +321,11 @@ class UninitializedMemoryTracker {
         checkBytesCount(bytesCount);
 
         long endAddress = Math.addExact(address, bytesCount);
-        
+
         int startIndex = Arrays.binarySearch(addresses, 0, count, address);
         if (startIndex < 0) {
             startIndex = -(startIndex + 1);
-            
+
             int previousIndex = startIndex - 1;
             if (previousIndex >= 0) {
                 long previousAddress = addresses[previousIndex];
@@ -363,12 +363,12 @@ class UninitializedMemoryTracker {
         } else {
             endIndex = -(endIndex + 1);
             endIndex--; // check previous section
-            
+
             if (endIndex >= 0) {
                 long previousAddress = addresses[endIndex];
                 long previousSize = sizes[endIndex];
                 long previousEndAddress = Math.addExact(previousAddress, previousSize);
-                
+
                 if (previousEndAddress > endAddress) {
                     // Shorten & shift previous section
                     addresses[endIndex] = endAddress;
@@ -378,7 +378,7 @@ class UninitializedMemoryTracker {
                 }
             }
         }
-        
+
         int removeCount = endIndex - startIndex + 1;
         if (removeCount > 0) {
             // Remove sections by shifting subsequent sections

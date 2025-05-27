@@ -37,7 +37,7 @@ class ScopedNativeMemorySanitizerTest {
         }
         TestSupport.checkAllNativeMemoryFreedAndForget();
     }
-    
+
     @Test
     void success() {
         assertNoBadMemoryAccess(() -> {
@@ -66,7 +66,7 @@ class ScopedNativeMemorySanitizerTest {
             assertNoBadMemoryAccess(() -> unsafe.putByte(array.get(), Unsafe.ARRAY_BYTE_BASE_OFFSET, (byte) 1));
         });
     }
-    
+
     @Test
     void error_BadAccess() {
         withScopedNativeMemoryTracking(() -> {
@@ -93,7 +93,7 @@ class ScopedNativeMemorySanitizerTest {
         }));
         assertEquals("Unhandled bad memory access error", e.getMessage());
     }
-    
+
     @Test
     void error_NestedScope() {
         var e = assertThrows(IllegalStateException.class, () -> {
@@ -101,16 +101,16 @@ class ScopedNativeMemorySanitizerTest {
         });
         assertEquals("Scope is already active; cannot nest scopes", e.getMessage());
     }
-    
+
     @Test
     void error_AccessScopedInGlobal() {
         AtomicLong address = new AtomicLong();
         withScopedNativeMemoryTracking(() -> {
             address.set(allocateMemory(10));
         });
-        
+
         assertBadMemoryAccess(() -> unsafe.putInt(address.get(), 1));
-        
+
         // Clean up
         freeMemory(address.get());
     }
@@ -127,7 +127,7 @@ class ScopedNativeMemorySanitizerTest {
         // Clean up
         freeMemory(address);
     }
-    
+
     @Test
     void error_AccessScopedInOtherScope() {
         AtomicLong address = new AtomicLong();
@@ -153,7 +153,7 @@ class ScopedNativeMemorySanitizerTest {
         withScopedNativeMemoryTracking(() -> {
             address.set(allocateMemory(10));
         });
-        
+
         assertNoBadMemoryAccess(() -> unsafe.freeMemory(address.get()));
 
         // Double free

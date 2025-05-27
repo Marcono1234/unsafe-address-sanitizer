@@ -598,14 +598,14 @@ public class UnsafeSanitizer {
 
     /**
      * Manually registers a section of allocated memory with this sanitizer.
-     * 
+     *
      * <p>This method is intended for use cases where the sanitizer has to be informed that a certain
      * section of memory has already been allocated without it having noticed it. For example when the agent
      * has been {@linkplain #installAgent(AgentSettings) installed at runtime}, or when the memory has been
      * allocated through means other than {@code Unsafe} or {@link ByteBuffer#allocateDirect(int)}.
      * Otherwise if that memory had not been registered, the sanitizer would likely report errors when
      * trying to access that memory later.
-     * 
+     *
      * @see #deregisterAllocatedMemory(long)
      */
     public static void registerAllocatedMemory(long address, long bytesCount) {
@@ -633,7 +633,7 @@ public class UnsafeSanitizer {
         if (address <= 0) {
             throw new IllegalArgumentException("Invalid address: " + address);
         }
-        
+
         // Note: This does not actually check that memory has been registered with `registerAllocatedMemory` before,
         // but that is probably fine for now; in case of double free this would then raise an error
         // TODO: Maybe handle it better when ErrorAction is not THROW (and this only returns false instead of throwing)?

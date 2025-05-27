@@ -147,7 +147,7 @@ interface UnsafeInterceptors {
             // for marking memory as initialized, and `onReadAccess` already verifies that memory is initialized
             return UnsafeSanitizerImpl.onReadAccess(obj, offset, size);
         }
-        
+
         @OnMethodExit
         public static void exit(@Enter boolean wasExecuted, @Return(typing = DYNAMIC, readOnly = false) Object result, @StubValue Object resultDefault) {
             if (!wasExecuted) {

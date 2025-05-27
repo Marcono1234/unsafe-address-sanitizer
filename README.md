@@ -37,7 +37,7 @@ are provided. The following is detected:
   - Reading uninitialized memory ([EXP33-C](https://wiki.sei.cmu.edu/confluence/display/c/EXP33-C.+Do+not+read+uninitialized+memory))
   - Double free ([CWE-415](https://cwe.mitre.org/data/definitions/415.html))
 
-> [!WARNING]  
+> [!WARNING]\
 > This library is experimental and only intended for testing and fuzzing. Do not use it in production, especially do
 > not rely on it as security measure in production.
 
@@ -80,7 +80,7 @@ sanitizer to react to invalid memory access before it occurs, and before the JVM
 (requires Java 17 or newer)
 
 The sanitizer Java agent has to be installed once to become active. It can either be installed at runtime by calling
-`UnsafeSanitizer.installAgent(...)`, or when the JVM is started by adding `-javaagent` to the arguments: 
+`UnsafeSanitizer.installAgent(...)`, or when the JVM is started by adding `-javaagent` to the arguments:
 ```
 java -javaagent:unsafe-address-sanitizer-standalone-agent.jar -jar my-application.jar
 ```
@@ -101,7 +101,7 @@ This sanitizer can be used in combination with the Java fuzzing library [Jazzer]
 especially its [JUnit 5 integration](https://github.com/CodeIntelligenceTesting/jazzer?tab=readme-ov-file#junit-5).
 
 When installing the Unsafe Sanitizer at runtime using `UnsafeSanitizer.installAgent(...)`, it should be called in a
-`static { ... }` block in the test class, to only call it once and not for every executed test method. 
+`static { ... }` block in the test class, to only call it once and not for every executed test method.
 
 Jazzer itself internally uses `sun.misc.Unsafe`. If the Unsafe Sanitizer agent is installed at runtime it might
 therefore be necessary to disable sanitization of native memory by using `AgentSettings.withGlobalNativeMemorySanitizer(false)`.\

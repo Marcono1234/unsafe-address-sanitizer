@@ -296,7 +296,7 @@ class MemorySectionMap {
                 throw new IllegalArgumentException("Access outside of section at " + address + ", size " + size + " (previous section: " + previousAddress + ", size " + previousSize + ")");
             }
         }
-        
+
         return index;
     }
 

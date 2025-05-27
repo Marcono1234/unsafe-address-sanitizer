@@ -30,7 +30,7 @@ class UnalignedAddressTest {
         }
         TestSupport.checkAllNativeMemoryFreedAndForget();
     }
-    
+
     private static long alignAddress(long address, int alignment) {
         long diff = address % alignment;
         if (diff == 0) {
@@ -115,12 +115,12 @@ class UnalignedAddressTest {
             unsafe.putLong(array, offset + Long.BYTES, 7);
             assertEquals(7, unsafe.getLong(array, offset + Long.BYTES));
         });
-        
+
         // copyMemory and setMemory should work regardless of alignment
         assertNoBadMemoryAccess(() -> {
             var array = new byte[] {1, 2, 3};
             var baseOffset = Unsafe.ARRAY_BYTE_BASE_OFFSET;
-            
+
             var dest = new byte[array.length];
             unsafe.copyMemory(array, baseOffset, dest, baseOffset, array.length);
             assertArrayEquals(new byte[] {1, 2, 3}, dest);
@@ -131,8 +131,8 @@ class UnalignedAddressTest {
             unsafe.putByte(array, baseOffset + 1, (byte) 3);
             unsafe.copyMemory(array, baseOffset + 1, dest, baseOffset, array.length - 1);
             assertArrayEquals(new byte[] {3, 3, 2}, dest);
-            
-            
+
+
             unsafe.setMemory(array, baseOffset, array.length, (byte) 4);
             assertArrayEquals(new byte[] {4, 4, 4}, array);
 
@@ -214,7 +214,7 @@ class UnalignedAddressTest {
     void aligned_native() {
         assertNoBadMemoryAccess(() -> {
             var address = allocateMemory(Long.BYTES * 2);
-            
+
             unsafe.putByte(address, (byte) 1);
             assertEquals((byte) 1, unsafe.getByte(address));
 
@@ -242,7 +242,7 @@ class UnalignedAddressTest {
         assertNoBadMemoryAccess(() -> {
             var address = allocateMemory(Unsafe.ADDRESS_SIZE * 2L);
             var addressValue = address + 1;  // arbitrary address
-            
+
             unsafe.putAddress(address, addressValue);
             assertEquals(addressValue, unsafe.getAddress(address));
 
@@ -251,8 +251,8 @@ class UnalignedAddressTest {
 
             freeMemory(address);
         });
-            
-        
+
+
         // copyMemory and setMemory should work regardless of alignment
         assertNoBadMemoryAccess(() -> {
             var length = 3;
@@ -262,19 +262,19 @@ class UnalignedAddressTest {
             assertEquals((byte) 1, unsafe.getByte(address));
             assertEquals((byte) 1, unsafe.getByte(address + 1));
             assertEquals((byte) 1, unsafe.getByte(address + 2));
-            
+
             unsafe.setMemory(address + 1, length - 1, (byte) 2);
             assertEquals((byte) 1, unsafe.getByte(address));
             assertEquals((byte) 2, unsafe.getByte(address + 1));
             assertEquals((byte) 2, unsafe.getByte(address + 2));
-            
-            
+
+
             unsafe.copyMemory(address, address + 1, length - 1);
             assertEquals((byte) 1, unsafe.getByte(address));
             assertEquals((byte) 1, unsafe.getByte(address + 1));
             assertEquals((byte) 2, unsafe.getByte(address + 2));
-            
-            
+
+
             unsafe.putByte(address + 1, (byte) 3);
             unsafe.copyMemory(address + 1, address, length - 1);
             assertEquals((byte) 3, unsafe.getByte(address));
