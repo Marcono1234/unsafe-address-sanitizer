@@ -384,10 +384,17 @@ class UnsafeThrowErrorTest {
             unsafe.putObject(b, ARRAY_BYTE_BASE_OFFSET, (byte) 1);
         });
 
-        assertBadMemoryAccess(() -> {
-            long[] l = {1, 2, 3};
-            // Not aligned to indices
-            unsafe.getLong(l, ARRAY_LONG_BASE_OFFSET + 1);
+        // Disable address alignment check to make sure index alignment check is reached
+        UnsafeSanitizerImpl.runWithoutAddressAlignmentCheck(() -> {
+            long[] array = {1, 2, 3};
+            assert ARRAY_LONG_INDEX_SCALE > 1;
+            long unalignedOffset = ARRAY_LONG_BASE_OFFSET + 1;
+
+            var e = assertBadMemoryAccess(() -> unsafe.putLong(array, unalignedOffset, 1));
+            assertEquals("Bad aligned array access at offset " + unalignedOffset + " for long[]", e.getMessage());
+
+            e = assertBadMemoryAccess(() -> unsafe.getLong(array, unalignedOffset));
+            assertEquals("Bad aligned array access at offset " + unalignedOffset + " for long[]", e.getMessage());
         });
     }
 
@@ -424,12 +431,15 @@ class UnsafeThrowErrorTest {
 
         // Test unaligned element access; assumes that index scale is larger than 1 byte
         assert ARRAY_OBJECT_INDEX_SCALE > 1;
-        long unalignedOffset = ARRAY_OBJECT_BASE_OFFSET + 1;
-        e = assertBadMemoryAccess(() -> unsafe.putObject(o, unalignedOffset, BigDecimal.valueOf(1)));
-        assertEquals("Bad aligned array access at offset " + unalignedOffset + " for java.lang.Number[]", e.getMessage());
+        // Disable address alignment check to make sure index alignment check is reached
+        UnsafeSanitizerImpl.runWithoutAddressAlignmentCheck(() -> {
+            long unalignedOffset = ARRAY_OBJECT_BASE_OFFSET + 1;
+            var e2 = assertBadMemoryAccess(() -> unsafe.putObject(o, unalignedOffset, BigDecimal.valueOf(1)));
+            assertEquals("Bad aligned array access at offset " + unalignedOffset + " for java.lang.Number[]", e2.getMessage());
 
-        e = assertBadMemoryAccess(() -> unsafe.getObject(o, ARRAY_OBJECT_BASE_OFFSET + 1));
-        assertEquals("Bad aligned array access at offset " + unalignedOffset + " for java.lang.Number[]", e.getMessage());
+            e2 = assertBadMemoryAccess(() -> unsafe.getObject(o, ARRAY_OBJECT_BASE_OFFSET + 1));
+            assertEquals("Bad aligned array access at offset " + unalignedOffset + " for java.lang.Number[]", e2.getMessage());
+        });
     }
 
     @Test

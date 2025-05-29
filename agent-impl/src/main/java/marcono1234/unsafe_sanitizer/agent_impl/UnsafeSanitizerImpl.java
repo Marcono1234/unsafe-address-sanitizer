@@ -117,7 +117,18 @@ public class UnsafeSanitizerImpl {
     // on the same platform which is also running the application in production, which most likely
     // is not guaranteed to be the case
     public static void setCheckAddressAlignment(boolean checkAlignment) {
-        AlignmentChecker.checkAlignment = checkAlignment;
+        AddressAlignmentChecker.checkAlignment = checkAlignment;
+    }
+
+    public static <E extends Throwable> void runWithoutAddressAlignmentCheck(ThrowingRunnable<E> runnable) throws E {
+        // Note: This does not support concurrent usage
+        boolean wasCheckingAlignment = AddressAlignmentChecker.checkAlignment;
+        setCheckAddressAlignment(false);
+        try {
+            runnable.run();
+        } finally {
+            setCheckAddressAlignment(wasCheckingAlignment);
+        }
     }
 
     // TODO: Add corresponding method in public `UnsafeSanitizer`
@@ -334,7 +345,7 @@ public class UnsafeSanitizerImpl {
             // native memory
             int bytesCount = size.getBytesCount();
 
-            return AlignmentChecker.checkAlignment(obj, address, size)
+            return AddressAlignmentChecker.checkAlignment(obj, address, size)
                 && (memoryTracker == null || memoryTracker.onAccess(address, bytesCount, isRead));
         } else if (obj.getClass().isArray()) {
             return ArrayAccessSanitizer.onAccess(obj, address, size, writtenObject);

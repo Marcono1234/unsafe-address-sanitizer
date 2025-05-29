@@ -2,8 +2,8 @@ package marcono1234.unsafe_sanitizer.agent_impl;
 
 import static marcono1234.unsafe_sanitizer.agent_impl.BadMemoryAccessError.reportError;
 
-class AlignmentChecker {
-    private AlignmentChecker() {}
+class AddressAlignmentChecker {
+    private AddressAlignmentChecker() {}
 
     public static volatile boolean checkAlignment = true;
 

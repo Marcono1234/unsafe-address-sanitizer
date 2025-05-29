@@ -202,12 +202,9 @@ class UnalignedAddressTest {
         var e = assertBadMemoryAccess(() -> unsafe.putLong(array, unalignedOffset, 1));
         assertEquals("Address " + unalignedOffset + " is not aligned by 8", e.getMessage());
 
-        UnsafeSanitizerImpl.setCheckAddressAlignment(false);
-        try {
+        UnsafeSanitizerImpl.runWithoutAddressAlignmentCheck(() -> {
             assertNoBadMemoryAccess(() -> unsafe.putLong(array, unalignedOffset, 1));
-        } finally {
-            UnsafeSanitizerImpl.setCheckAddressAlignment(true);
-        }
+        });
     }
 
     @Test
@@ -352,12 +349,9 @@ class UnalignedAddressTest {
         var e = assertBadMemoryAccess(() -> unsafe.putLong(unalignedAddress, 1));
         assertEquals("Address " + unalignedAddress + " is not aligned by 8", e.getMessage());
 
-        UnsafeSanitizerImpl.setCheckAddressAlignment(false);
-        try {
+        UnsafeSanitizerImpl.runWithoutAddressAlignmentCheck(() -> {
             assertNoBadMemoryAccess(() -> unsafe.putLong(unalignedAddress, 1));
-        } finally {
-            UnsafeSanitizerImpl.setCheckAddressAlignment(true);
-        }
+        });
 
         freeMemory(alignedAddress);
     }

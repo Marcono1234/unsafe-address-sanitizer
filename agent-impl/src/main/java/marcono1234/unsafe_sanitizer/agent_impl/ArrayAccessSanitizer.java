@@ -73,7 +73,7 @@ class ArrayAccessSanitizer {
          *
          * Therefore, this only checks alignment here.
          */
-        return AlignmentChecker.checkAlignment(array, offset, memorySize)
+        return AddressAlignmentChecker.checkAlignment(array, offset, memorySize)
             && onAccessImpl(array, offset, bytesCount);
     }
 
