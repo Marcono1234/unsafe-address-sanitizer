@@ -43,6 +43,8 @@ class ArrayAccessSanitizer {
             // Assume that for primitive array primitive memory size is used
             bytesCount = memorySize.getBytesCount();
         } else if (memorySize == MemorySize.OBJECT) {
+            // Object access on an object array
+
             if (writtenObject != null) {
                 Class<?> writtenObjectClass = writtenObject.getClass();
                 // `Unsafe.putObject` says "Unless the reference x being stored is either null or matches the field
@@ -52,8 +54,11 @@ class ArrayAccessSanitizer {
                 }
             }
 
-            // Use the index scale of an `Object[]`
-            bytesCount = UnsafeAccess.arrayIndexScale(arrayClass);
+            // Use the index scale of the object array as access size
+            bytesCount = unsafe.arrayIndexScale(arrayClass);
+            if (bytesCount <= 0) {
+                return reportError("Array class " + arrayClass.getTypeName() + " has unsupported index scale " + bytesCount);
+            }
         } else {
             // Trying to read primitive data from object array
             // This is technically possible, but seems error-prone, especially if there are no guarantees how
@@ -98,14 +103,14 @@ class ArrayAccessSanitizer {
         // Faster path for byte[], which is most commonly used (?)
         if (arrayClass == byte[].class) {
             baseOffset = Unsafe.ARRAY_BYTE_BASE_OFFSET;
-            indexScale = UnsafeAccess.ARRAY_BYTE_INDEX_SCALE;
+            indexScale = Unsafe.ARRAY_BYTE_INDEX_SCALE;
         } else {
             baseOffset = unsafe.arrayBaseOffset(arrayClass);
-            indexScale = UnsafeAccess.arrayIndexScale(arrayClass);
+            indexScale = unsafe.arrayIndexScale(arrayClass);
         }
 
-        if (indexScale == 0) {
-            return reportError("Unsupported array class: " + arrayClass.getTypeName());
+        if (indexScale <= 0) {
+            return reportError("Array class " + arrayClass.getTypeName() + " has unsupported index scale " + indexScale);
         }
 
         if (offset < baseOffset) {

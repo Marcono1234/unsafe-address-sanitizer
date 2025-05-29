@@ -414,6 +414,22 @@ class UnsafeThrowErrorTest {
 
         e = assertBadMemoryAccess(() -> unsafe.putObject(o, ARRAY_OBJECT_BASE_OFFSET, "test"));
         assertEquals("Trying to write java.lang.String to java.lang.Number array", e.getMessage());
+
+        long arrayEndOffset = ARRAY_OBJECT_BASE_OFFSET + (long) o.length * ARRAY_OBJECT_INDEX_SCALE;
+        e = assertBadMemoryAccess(() -> unsafe.putObject(o, arrayEndOffset, BigDecimal.valueOf(1)));
+        assertEquals(
+            "Bad array access at offset " + arrayEndOffset + ", size " + ARRAY_OBJECT_INDEX_SCALE + "; max offset is " + arrayEndOffset,
+            e.getMessage()
+        );
+
+        // Test unaligned element access; assumes that index scale is larger than 1 byte
+        assert ARRAY_OBJECT_INDEX_SCALE > 1;
+        long unalignedOffset = ARRAY_OBJECT_BASE_OFFSET + 1;
+        e = assertBadMemoryAccess(() -> unsafe.putObject(o, unalignedOffset, BigDecimal.valueOf(1)));
+        assertEquals("Bad aligned array access at offset " + unalignedOffset + " for java.lang.Number[]", e.getMessage());
+
+        e = assertBadMemoryAccess(() -> unsafe.getObject(o, ARRAY_OBJECT_BASE_OFFSET + 1));
+        assertEquals("Bad aligned array access at offset " + unalignedOffset + " for java.lang.Number[]", e.getMessage());
     }
 
     @Test
