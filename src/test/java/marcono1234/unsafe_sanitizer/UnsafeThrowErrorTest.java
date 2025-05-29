@@ -314,46 +314,42 @@ class UnsafeThrowErrorTest {
     void putAddress() {
         long a = allocateMemory(ADDRESS_SIZE);
 
-        long sizeB = 1;
-        long b = allocateMemory(sizeB);
-
         assertNoBadMemoryAccess(() -> {
+            unsafe.putAddress(a, 0);
+            assertEquals(0, unsafe.getAddress(a));
             unsafe.putAddress(a, a);
-            unsafe.putAddress(a, b);
+            assertEquals(a, unsafe.getAddress(a));
         });
-        assertBadMemoryAccess(() -> unsafe.putAddress(-1, b));
-        assertBadMemoryAccess(() -> unsafe.putAddress(0, b));
-        assertBadMemoryAccess(() -> {
+
+        var e = assertBadMemoryAccess(() -> unsafe.putAddress(-1, 0));
+        assertEquals("Invalid address: -1", e.getMessage());
+
+        e = assertBadMemoryAccess(() -> unsafe.putAddress(0, 0));
+        assertEquals("Invalid address: 0", e.getMessage());
+
+        e = assertBadMemoryAccess(() -> {
             // Assumes that no allocation has been performed at this address
-            unsafe.putAddress(1, b);
+            unsafe.putAddress(1, 0);
         });
-        assertBadMemoryAccess(() -> unsafe.putAddress(a, -1));
-        assertBadMemoryAccess(() -> unsafe.putAddress(a, 0));
-        assertBadMemoryAccess(() -> {
-            // Assumes that no allocation has been performed at this address
-            unsafe.putAddress(a, 1);
-        });
-        assertBadMemoryAccess(() -> {
-            // Exceeds section
-            unsafe.putAddress(a + 1, b);
-        });
-        assertBadMemoryAccess(() -> {
-            // Assumes that no allocation has been performed at this address
-            unsafe.putAddress(a, b - 1);
-        });
-        assertBadMemoryAccess(() -> {
-            // `Unsafe#putAddress` documentation sounds like an address which represents an 'exclusive end address',
-            // that is pointing right behind section, is not allowed
-            unsafe.putAddress(a, b + sizeB);
-        });
-        assertBadMemoryAccess(() -> {
-            // Assumes that no allocation has been performed at this address
-            unsafe.putAddress(a, b + sizeB + 1);
+        assertEquals("Access outside of section at 1", e.getMessage());
+
+        e = assertBadMemoryAccess(() -> unsafe.putAddress(a, -1));
+        assertEquals("Invalid address value: -1", e.getMessage());
+
+        // Disable alignment check to make sure section bounds check is reached
+        UnsafeSanitizerImpl.runWithoutAddressAlignmentCheck(() -> {
+            var e2 = assertBadMemoryAccess(() -> {
+                // Exceeds section
+                unsafe.putAddress(a + 1, 0);
+            });
+            assertEquals(
+                "Access outside of section at " + (a + 1) + ", size " + ADDRESS_SIZE + " (previous section: " + a + ", size " + ADDRESS_SIZE + ")",
+                e2.getMessage()
+            );
         });
 
         // Clean up
         freeMemory(a);
-        freeMemory(b);
     }
 
     @Test

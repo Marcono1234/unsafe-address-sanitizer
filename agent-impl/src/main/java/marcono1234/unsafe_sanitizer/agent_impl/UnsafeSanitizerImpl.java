@@ -231,13 +231,28 @@ public class UnsafeSanitizerImpl {
             || memoryTracker.verifyCanReallocate(address);
     }
 
-    public static boolean verifyValidMemoryAddress(long address) {
-        var memoryTracker = getMemoryTracker();
-        // `Unsafe#putAddress(java.lang.Object, long, long)` says "or does not point *into* a block";
-        // the "into" sounds like an address representing an 'exclusive end address' (= offset + size) is not valid
-        boolean isZeroSized = false;
-        return memoryTracker == null
-            || memoryTracker.verifyIsInAllocation(address, isZeroSized);
+    public static boolean verifyValidAddressValue(long address) {
+        /*
+         * `jdk.internal.misc.Unsafe.putAddress(java.lang.Object, long, long)` says:
+         * > Stores a native pointer into a given memory address.
+         * > If the address is zero, or does not point into a block obtained from `allocateMemory`, the results are undefined.
+         *
+         * It is not completely clear what "address" here refers to:
+         * - none of the parameters are named "address"
+         * - the method is named "putAddress", so it could refer to the address value being stored
+         * - the first sentence of the documentation calls the value "native pointer", so "address" could refer to
+         *   the memory address where the value is stored
+         *
+         * To not make too strong assumptions here, assume the address value does not have to point
+         * to an existing allocation. Especially since it might point to an allocation the sanitizer
+         * is not aware of.
+         * If the address is later used for invalid memory access, the sanitizer would notice it.
+         */
+
+        if (address < 0) {
+            return reportError("Invalid address value: " + address);
+        }
+        return true;
     }
 
     public static boolean verifyValidAllocationBytesCount(long bytesCount) {

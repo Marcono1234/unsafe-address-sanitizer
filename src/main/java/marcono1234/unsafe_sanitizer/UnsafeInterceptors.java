@@ -262,8 +262,7 @@ interface UnsafeInterceptors {
     class PutAddress {
         @OnMethodEnter(skipOn = OnDefaultValue.class) // -> `return false` = skip
         public static boolean enter(@Argument(0) long address, @Argument(1) long addressValue) {
-            // `Unsafe.putAddress` says behavior is undefined if address value does not point to valid allocation
-            if (!UnsafeSanitizerImpl.verifyValidMemoryAddress(addressValue)) {
+            if (!UnsafeSanitizerImpl.verifyValidAddressValue(addressValue)) {
                 return false;
             }
             MemorySize size = MemorySize.ADDRESS;
