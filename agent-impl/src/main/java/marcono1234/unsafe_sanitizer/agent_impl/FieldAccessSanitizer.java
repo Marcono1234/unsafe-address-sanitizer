@@ -120,6 +120,12 @@ class FieldAccessSanitizer {
         Map<Long, FieldData> map = new HashMap<>();
         for (Field f : c.getDeclaredFields()) {
             if (Modifier.isStatic(f.getModifiers())) {
+                Object base = unsafe.staticFieldBase(f);
+                // For now only support HotSpot JVM where static field base is the declaring class; see also comment above
+                if (!c.equals(base)) {
+                    throw new AssertionError("Unexpected base " + base + " for field '" + f + "'");
+                }
+
                 FieldData fieldData = new FieldData(f, MemorySize.fromClass(f.getType()));
                 var oldValue = map.put(unsafe.staticFieldOffset(f), fieldData);
                 if (oldValue != null) {
