@@ -30,7 +30,15 @@ public class MethodCallDebugLogger {
     private static String formatValue(Object obj) {
         if (obj != null && obj.getClass().isArray()) {
             int length = Array.getLength(obj);
-            return obj.getClass().getComponentType().getName() + "[length=" + length + "]";
+            var innerComponentType = obj.getClass().getComponentType();
+            int nestedArrayDimensions = 0;
+            while (innerComponentType.isArray()) {
+                nestedArrayDimensions++;
+                innerComponentType = innerComponentType.getComponentType();
+            }
+
+            // To match Java array declaration syntax, print the length of the array for the first `[...]` occurrence
+            return innerComponentType.getTypeName() + "[length=" + length + "]" + "[]".repeat(nestedArrayDimensions);
         } else if (obj instanceof Character c) {
             return "'" + formatChar(c) + "'";
         } else if (obj instanceof CharSequence charSequence) {

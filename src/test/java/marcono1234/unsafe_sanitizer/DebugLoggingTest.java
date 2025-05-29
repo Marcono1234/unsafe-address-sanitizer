@@ -207,6 +207,16 @@ class DebugLoggingTest {
     }
 
     @Test
+    void putObject_NestedArray() {
+        int[][][] a = new int[1][][];
+        long offset = Unsafe.ARRAY_OBJECT_BASE_OFFSET;
+        assertDebugLog(
+            () -> unsafe.putObject(a, offset, new int[0][]),
+            "[DEBUG] Unsafe.putObject(int[length=1][][], " + offset + ", int[length=0][])"
+        );
+    }
+
+    @Test
     void getObject_String() throws Exception {
         class Dummy {
             final String s = "abc\u001Fd'\"\\e\u007F";
