@@ -111,8 +111,8 @@ memory sanitization.
 
 ## Building
 
-This project uses Gradle for building. JDK 17 is recommended, but Gradle toolchains are used, so any needed JDK
-is downloaded by Gradle automatically.
+This project uses Gradle for building. JDK 17 is recommended, but Gradle toolchains are used, so any newer JDK version
+should work as well because the JDK versions needed by the build are downloaded by Gradle automatically.
 
 ```
 ./gradlew build
