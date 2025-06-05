@@ -87,7 +87,8 @@ testing {
             val agentTest by register(testName, JvmTestSuite::class) {
                 useJUnitJupiter(libs.versions.junit)
 
-                // TODO: This causes the warning "Duplicate content roots detected" in IntelliJ; can probably be ignored for now
+                // TODO: This causes the warning "Duplicate content roots detected" in IntelliJ because all the
+                //   agent tests (with different configs) use the same source dir; can probably be ignored for now
                 sources {
                     java {
                         setSrcDirs(listOf("src/agentTest/java"))
@@ -115,14 +116,59 @@ testing {
             }
         }
 
-        // TODO: Maybe create a Jazzer test variant which installs sanitizer at runtime?
-        // TODO: Maybe create a Jazzer test variant which performs actual fuzzing? But with low `@FuzzTest(maxExecutions = ...)`
-        //   value to avoid build taking too long, and for code which does not perform invalid Unsafe access, to make sure
-        //   test does not randomly fail. Also can only run this for one fuzzing method, see https://github.com/CodeIntelligenceTesting/jazzer/issues/599
-        val jazzerTest = register("jazzerTest", JvmTestSuite::class) {
+        // Runs Jazzer in 'fuzzing mode'
+        val jazzerFuzzingTest = register("jazzerFuzzingTest", JvmTestSuite::class) {
             useJUnitJupiter(libs.versions.junit)
 
-            val jazzerTestDir = "src/jazzerTest"
+            val jazzerTestDir = "src/jazzerFuzzingTest"
+            sources {
+                // Use nested `src/test/...` here because Jazzer expects resources under `src/test/resources`
+                val parentDir = "${jazzerTestDir}/src/test"
+                java {
+                    setSrcDirs(listOf("${parentDir}/java"))
+                }
+                resources {
+                    setSrcDirs(listOf("${parentDir}/resources"))
+                }
+            }
+
+            dependencies {
+                implementation(libs.jazzer.junit)
+            }
+
+            targets {
+                all {
+                    testTask.configure {
+                        // Run regular tests first
+                        shouldRunAfter(tasks.test)
+
+                        // Set custom working dir because Jazzer expects resources under `src/test/resources`
+                        workingDir = project.projectDir.resolve(jazzerTestDir)
+
+                        environment(
+                            // Enable Jazzer fuzzing mode
+                            "JAZZER_FUZZ" to "1"
+                        )
+
+                        // Note: This setup assumes that the sanitizer will see all allocations made by Jazzer;
+                        // otherwise this could lead to spurious sanitizer errors, for example when the native
+                        // library used by Jazzer performs allocations and Jazzer then accesses that memory using Unsafe
+                        configureSanitizerAgentForJvmStartup()
+                    }
+                }
+            }
+        }
+        tasks.check {
+            dependsOn(jazzerFuzzingTest)
+        }
+
+        // TODO: Maybe add a Jazzer test variant which installs sanitizer at runtime?
+
+        // Runs Jazzer in 'regression mode'
+        val jazzerRegressionTest = register("jazzerRegressionTest", JvmTestSuite::class) {
+            useJUnitJupiter(libs.versions.junit)
+
+            val jazzerTestDir = "src/jazzerRegressionTest"
             sources {
                 // Use nested `src/test/...` here because Jazzer expects resources under `src/test/resources`
                 val parentDir = "${jazzerTestDir}/src/test"
@@ -152,20 +198,20 @@ testing {
                         workingDir = project.projectDir.resolve(jazzerTestDir)
 
                         filter {
-                            // Exclude actual test implementation because it is run manually, see code in `JazzerTest`
-                            excludeTest("JazzerTest\$JazzerTestImpl", null)
+                            // Exclude actual test implementation because it is run manually, see code in `JazzerRegressionTest`
+                            excludeTest("JazzerRegressionTest\$JazzerRegressionTestImpl", null)
                         }
 
                         // Note: This setup assumes that the sanitizer will see all allocations made by Jazzer;
                         // otherwise this could lead to spurious sanitizer errors, for example when the native
-                        // library Jazzer uses performs allocations and Jazzer then accesses that memory using Unsafe
+                        // library used by Jazzer performs allocations and Jazzer then accesses that memory using Unsafe
                         configureSanitizerAgentForJvmStartup()
                     }
                 }
             }
         }
         tasks.check {
-            dependsOn(jazzerTest)
+            dependsOn(jazzerRegressionTest)
         }
     }
 }

@@ -22,20 +22,21 @@ import static org.junit.platform.testkit.engine.EventConditions.*;
 import static org.junit.platform.testkit.engine.TestExecutionResultConditions.cause;
 import static org.junit.platform.testkit.engine.TestExecutionResultConditions.message;
 
-class JazzerTest {
+/**
+ * Runs Jazzer tests in 'regression mode' where the previously generated inputs from the
+ * {@code JazzerRegressionTestImplInputs} directory are used.
+ */
+class JazzerRegressionTest {
     /*
      * Test is executed manually below using JUnit Platform Test Kit to be able to assert expected failures,
      * see also https://junit.org/junit5/docs/current/user-guide/#testkit
      *
      * If you want to execute this manually (for example for easier troubleshooting), temporarily remove the
      * exclusion filter in `build.gradle.kts`
-     *
-     * The tests are run in Jazzer 'regression' mode where the inputs from the `JazzerTestImplInputs` directory
-     * are used.
      */
     @SuppressWarnings("NewClassNamingConvention")  // intentionally does not have standard test name
     @TestMethodOrder(OrderAnnotation.class)  // to ensure test events have consistent order
-    static class JazzerTestImpl {
+    static class JazzerRegressionTestImpl {
         private static final Unsafe unsafe;
         static {
             try {
@@ -114,7 +115,7 @@ class JazzerTest {
     @Test
     void runTests() {
         var results = EngineTestKit.engine("junit-jupiter")
-            .selectors(selectClass(JazzerTestImpl.class))
+            .selectors(selectClass(JazzerRegressionTestImpl.class))
             .execute();
 
         results.testEvents().finished()
