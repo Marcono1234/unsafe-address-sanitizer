@@ -54,17 +54,34 @@ tasks.check {
 @Suppress("UnstableApiUsage") // for Test Suites
 testing {
     suites {
-        data class TestConfig(val javaVersion: Int, val agentArgs: String? = null)
+        fun Test.configureSanitizerAgentForJvmStartup(agentArgs: String? = null) {
+            // Requires JAR with dependencies
+            dependsOn(tasks.shadowJar)
 
-        val testConfigs = arrayOf(
-            TestConfig(17),
-            TestConfig(21),
-            TestConfig(21, "call-debug-logging=true,uninitialized-memory-tracking=false")
+            val agentJar = tasks.shadowJar.get().archiveFile
+            // Define the agent JAR as additional input to prevent Gradle from erroneously assuming
+            // this task is UP-TO-DATE or can be used FROM-CACHE despite the agent JAR having changed
+            inputs.file(agentJar)
+
+            // Evaluate the arguments lazily to make sure the `shadowJar` task has already been configured
+            jvmArgumentProviders.add {
+                val agentPath = agentJar.get().asFile.absolutePath
+                val agentArgsSuffix = agentArgs?.let { "=$it" } ?: ""
+                listOf("-javaagent:${agentPath}${agentArgsSuffix}")
+            }
+        }
+
+        data class AgentTestConfig(val javaVersion: Int, val agentArgs: String? = null)
+
+        val agentTestConfigs = arrayOf(
+            AgentTestConfig(17),
+            AgentTestConfig(21),
+            AgentTestConfig(21, "call-debug-logging=true,uninitialized-memory-tracking=false")
         )
-        testConfigs.forEach { testConfig ->
+        agentTestConfigs.forEach { testConfig ->
             // Create integration test for using agent standalone by running with `-javaagent:...`
 
-            var testName = "agentTestJdk${testConfig.javaVersion}";
+            var testName = "agentTestJdk${testConfig.javaVersion}"
             testConfig.agentArgs?.let { testName += "Args" }
 
             val agentTest by register(testName, JvmTestSuite::class) {
@@ -83,20 +100,7 @@ testing {
                             // Run regular tests first
                             shouldRunAfter(tasks.test)
 
-                            // Requires JAR with dependencies
-                            dependsOn(tasks.shadowJar)
-
-                            val agentJar = tasks.shadowJar.get().archiveFile
-                            // Define the agent JAR as additional input to prevent Gradle from erroneously assuming
-                            // this task is UP-TO-DATE or can be used FROM-CACHE despite the agent JAR having changed
-                            inputs.file(agentJar)
-
-                            // Evaluate the arguments lazily to make sure the `shadowJar` task has already been configured
-                            jvmArgumentProviders.add {
-                                val agentPath = agentJar.get().asFile.absolutePath;
-                                val agentArgs = testConfig.agentArgs?.let { "=$it" } ?: ""
-                                listOf("-javaagent:${agentPath}${agentArgs}")
-                            }
+                            configureSanitizerAgentForJvmStartup(testConfig.agentArgs)
 
                             javaLauncher.set(javaToolchains.launcherFor {
                                 languageVersion.set(JavaLanguageVersion.of(testConfig.javaVersion))
@@ -109,6 +113,59 @@ testing {
             tasks.check {
                 dependsOn(agentTest)
             }
+        }
+
+        // TODO: Maybe create a Jazzer test variant which installs sanitizer at runtime?
+        // TODO: Maybe create a Jazzer test variant which performs actual fuzzing? But with low `@FuzzTest(maxExecutions = ...)`
+        //   value to avoid build taking too long, and for code which does not perform invalid Unsafe access, to make sure
+        //   test does not randomly fail. Also can only run this for one fuzzing method, see https://github.com/CodeIntelligenceTesting/jazzer/issues/599
+        val jazzerTest = register("jazzerTest", JvmTestSuite::class) {
+            useJUnitJupiter(libs.versions.junit)
+
+            val jazzerTestDir = "src/jazzerTest"
+            sources {
+                // Use nested `src/test/...` here because Jazzer expects resources under `src/test/resources`
+                val parentDir = "${jazzerTestDir}/src/test"
+                java {
+                    setSrcDirs(listOf("${parentDir}/java"))
+                }
+                resources {
+                    setSrcDirs(listOf("${parentDir}/resources"))
+                }
+            }
+
+            dependencies {
+                // Use JUnit Platform Test Kit to manually run tests and assert their results, including expected
+                // failures, see https://junit.org/junit5/docs/current/user-guide/#testkit
+                implementation(libs.junit.testkit)
+
+                implementation(libs.jazzer.junit)
+            }
+
+            targets {
+                all {
+                    testTask.configure {
+                        // Run regular tests first
+                        shouldRunAfter(tasks.test)
+
+                        // Set custom working dir because Jazzer expects resources under `src/test/resources`
+                        workingDir = project.projectDir.resolve(jazzerTestDir)
+
+                        filter {
+                            // Exclude actual test implementation because it is run manually, see code in `JazzerTest`
+                            excludeTest("JazzerTest\$JazzerTestImpl", null)
+                        }
+
+                        // Note: This setup assumes that the sanitizer will see all allocations made by Jazzer;
+                        // otherwise this could lead to spurious sanitizer errors, for example when the native
+                        // library Jazzer uses performs allocations and Jazzer then accesses that memory using Unsafe
+                        configureSanitizerAgentForJvmStartup()
+                    }
+                }
+            }
+        }
+        tasks.check {
+            dependsOn(jazzerTest)
         }
     }
 }
