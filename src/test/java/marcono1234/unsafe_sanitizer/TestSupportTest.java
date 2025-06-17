@@ -17,7 +17,7 @@ class TestSupportTest {
     @BeforeAll
     static void installAgent() {
         UnsafeSanitizer.installAgent(AgentSettings.defaultSettings());
-        UnsafeSanitizer.setErrorAction(ErrorAction.THROW);
+        UnsafeSanitizer.modifySettings().setErrorAction(ErrorAction.THROW);
         // This mainly prevents spurious errors in case any other test failed to free memory
         TestSupport.checkAllNativeMemoryFreedAndForget();
     }
@@ -33,7 +33,7 @@ class TestSupportTest {
 
     @AfterEach
     void resetErrorAction() {
-        UnsafeSanitizer.setErrorAction(ErrorAction.THROW);
+        UnsafeSanitizer.modifySettings().setErrorAction(ErrorAction.THROW);
     }
 
     private static void performBadAccess() {
@@ -99,7 +99,7 @@ class TestSupportTest {
 
     @Test
     void badAccess_WrongErrorAction() {
-        UnsafeSanitizer.setErrorAction(ErrorAction.PRINT);
+        UnsafeSanitizer.modifySettings().setErrorAction(ErrorAction.PRINT);
         var e = assertThrows(IllegalStateException.class, () -> {
             assertBadMemoryAccess(() -> {});
         });
@@ -169,7 +169,7 @@ class TestSupportTest {
 
     @Test
     void noBadAccess_WrongErrorAction() {
-        UnsafeSanitizer.setErrorAction(ErrorAction.PRINT);
+        UnsafeSanitizer.modifySettings().setErrorAction(ErrorAction.PRINT);
         var e = assertThrows(IllegalStateException.class, () -> {
             assertNoBadMemoryAccess(() -> {});
         });

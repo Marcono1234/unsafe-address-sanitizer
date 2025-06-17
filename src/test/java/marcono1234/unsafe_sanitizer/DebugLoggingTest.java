@@ -31,15 +31,16 @@ class DebugLoggingTest {
     @BeforeAll
     static void installAgent() {
         UnsafeSanitizer.installAgent(AgentSettings.defaultSettings());
-        UnsafeSanitizer.setErrorAction(ErrorAction.THROW);
+        UnsafeSanitizer.modifySettings().setErrorAction(ErrorAction.THROW);
         // This mainly prevents spurious errors in case any other test failed to free memory
         TestSupport.checkAllNativeMemoryFreedAndForget();
-        UnsafeSanitizer.setIsDebugLogging(true);
+
+        UnsafeSanitizer.modifySettings().setCallDebugLogging(true);
     }
 
     @AfterAll
     static void resetDebugLogging() {
-        UnsafeSanitizer.setIsDebugLogging(false);
+        UnsafeSanitizer.modifySettings().setCallDebugLogging(false);
     }
 
     @AfterEach
@@ -53,7 +54,7 @@ class DebugLoggingTest {
 
     @AfterEach
     void resetErrorAction() {
-        UnsafeSanitizer.setErrorAction(ErrorAction.THROW);
+        UnsafeSanitizer.modifySettings().setErrorAction(ErrorAction.THROW);
     }
 
     private static void assertDebugLog(Runnable runnable, String expectedOutput) {
@@ -113,7 +114,7 @@ class DebugLoggingTest {
 
     @Test
     void allocate_thrown_error() {
-        UnsafeSanitizer.setErrorAction(ErrorAction.THROW);
+        UnsafeSanitizer.modifySettings().setErrorAction(ErrorAction.THROW);
         assertDebugLog(
             () -> assertBadMemoryAccess(() -> unsafe.allocateMemory(-1)),
             "[DEBUG] Unsafe.allocateMemory(-1) = <error: BadMemoryAccessError: Invalid bytes count: -1>"
@@ -122,7 +123,7 @@ class DebugLoggingTest {
 
     @Test
     void allocate_unsafe_exception() {
-        UnsafeSanitizer.setErrorAction(ErrorAction.NONE);
+        UnsafeSanitizer.modifySettings().setErrorAction(ErrorAction.NONE);
         assertDebugLog(
             () -> {
                 try {
@@ -142,7 +143,7 @@ class DebugLoggingTest {
 
     @Test
     void allocate_skipped() {
-        UnsafeSanitizer.setErrorAction(ErrorAction.PRINT_SKIP);
+        UnsafeSanitizer.modifySettings().setErrorAction(ErrorAction.PRINT_SKIP);
 
         ByteArrayOutputStream capturedErr = new ByteArrayOutputStream();
         PrintStream tempSystemErr = new PrintStream(capturedErr, true, StandardCharsets.UTF_8);

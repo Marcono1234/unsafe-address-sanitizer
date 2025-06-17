@@ -27,14 +27,14 @@ class UnsafePrintTest {
     @BeforeAll
     static void installAgent() {
         UnsafeSanitizer.installAgent(AgentSettings.defaultSettings());
-        UnsafeSanitizer.setErrorAction(ErrorAction.PRINT);
+        UnsafeSanitizer.modifySettings().setErrorAction(ErrorAction.PRINT);
         // This mainly prevents spurious errors in case any other test failed to free memory
         TestSupport.checkAllNativeMemoryFreedAndForget();
     }
 
     @AfterAll
     static void resetErrorAction() {
-        UnsafeSanitizer.setErrorAction(ErrorAction.THROW);
+        UnsafeSanitizer.modifySettings().setErrorAction(ErrorAction.THROW);
     }
 
     @AfterEach

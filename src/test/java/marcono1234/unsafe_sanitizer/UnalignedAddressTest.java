@@ -17,7 +17,7 @@ class UnalignedAddressTest {
     @BeforeAll
     static void installAgent() {
         UnsafeSanitizer.installAgent(UnsafeSanitizer.AgentSettings.defaultSettings());
-        UnsafeSanitizer.setErrorAction(ErrorAction.THROW);
+        UnsafeSanitizer.modifySettings().setErrorAction(ErrorAction.THROW);
         // This mainly prevents spurious errors in case any other test failed to free memory
         TestSupport.checkAllNativeMemoryFreedAndForget();
     }

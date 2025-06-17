@@ -1,7 +1,6 @@
 package marcono1234.unsafe_sanitizer;
 
 import marcono1234.unsafe_sanitizer.UnsafeSanitizer.AgentSettings;
-import marcono1234.unsafe_sanitizer.agent_impl.UnsafeSanitizerImpl;
 import org.junit.jupiter.api.*;
 
 import java.lang.reflect.Field;
@@ -19,12 +18,12 @@ class DirectByteBufferTest {
     @BeforeAll
     static void installAgent() {
         UnsafeSanitizer.installAgent(AgentSettings.defaultSettings());
-        UnsafeSanitizer.setErrorAction(ErrorAction.THROW);
+        UnsafeSanitizer.modifySettings().setErrorAction(ErrorAction.THROW);
         // This mainly prevents spurious errors in case any other test failed to free memory
         TestSupport.checkAllNativeMemoryFreedAndForget();
 
         // TODO: Instead of disabling alignment check here, adjust tests to only perform aligned access?
-        UnsafeSanitizerImpl.setCheckAddressAlignment(false);
+        UnsafeSanitizer.modifySettings().setAddressAlignmentChecking(false);
     }
 
     @AfterEach
@@ -38,8 +37,8 @@ class DirectByteBufferTest {
 
     @AfterAll
     static void restoreAlignmentChecking() {
-        // TODO: See `setCheckAddressAlignment` call above
-        UnsafeSanitizerImpl.setCheckAddressAlignment(true);
+        // TODO: See `setAddressAlignmentChecking` call above
+        UnsafeSanitizer.modifySettings().setAddressAlignmentChecking(true);
     }
 
     private static long getAddress(ByteBuffer buffer) {

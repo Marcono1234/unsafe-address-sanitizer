@@ -57,7 +57,7 @@ public class TestSupport {
         UnsafeSanitizer.checkInstalled();
         var oldErrorAction = UnsafeSanitizerImpl.getErrorAction();
         try {
-            UnsafeSanitizer.setErrorAction(ErrorAction.THROW);
+            UnsafeSanitizer.modifySettings().setErrorAction(ErrorAction.THROW);
             return s.get();
         } finally {
             UnsafeSanitizerImpl.setErrorAction(oldErrorAction);
@@ -73,7 +73,7 @@ public class TestSupport {
      * @throws IllegalStateException
      *      if the agent has not been installed yet
      * @throws IllegalStateException
-     *      if the current {@linkplain UnsafeSanitizer#setErrorAction(ErrorAction) error action} is
+     *      if the current {@linkplain UnsafeSanitizer.ModifySettings#setErrorAction(ErrorAction) error action} is
      *      not {@link ErrorAction#THROW}
      */
     // @CanIgnoreReturnValue is needed to avoid spurious IntelliJ warnings for callers, see https://youtrack.jetbrains.com/issue/IDEA-188863
@@ -135,7 +135,7 @@ public class TestSupport {
      * @throws IllegalStateException
      *      if the agent has not been installed yet
      * @throws IllegalStateException
-     *      if the current {@linkplain UnsafeSanitizer#setErrorAction(ErrorAction) error action} is
+     *      if the current {@linkplain UnsafeSanitizer.ModifySettings#setErrorAction(ErrorAction) error action} is
      *      not {@link ErrorAction#THROW}
      */
     public static <T> T assertNoBadMemoryAccessGet(ThrowingSupplier<T> supplier) {
@@ -177,7 +177,7 @@ public class TestSupport {
      * @throws IllegalStateException
      *      if the agent has not been installed yet
      * @throws IllegalStateException
-     *      if the current {@linkplain UnsafeSanitizer#setErrorAction(ErrorAction) error action} is
+     *      if the current {@linkplain UnsafeSanitizer.ModifySettings#setErrorAction(ErrorAction) error action} is
      *      not {@link ErrorAction#THROW}
      */
     public static void assertNoBadMemoryAccess(ThrowingRunnable runnable) {

@@ -24,7 +24,7 @@ class ScopedNativeMemorySanitizerTest {
     @BeforeAll
     static void installAgent() {
         UnsafeSanitizer.installAgent(UnsafeSanitizer.AgentSettings.defaultSettings());
-        UnsafeSanitizer.setErrorAction(ErrorAction.THROW);
+        UnsafeSanitizer.modifySettings().setErrorAction(ErrorAction.THROW);
         // This mainly prevents spurious errors in case any other test failed to free memory
         TestSupport.checkAllNativeMemoryFreedAndForget();
     }
@@ -327,9 +327,9 @@ class ScopedNativeMemorySanitizerTest {
                     mainCheckedError.await();
 
                     // Allow to exit `withScopedNativeMemoryTracking` despite non-propagated last error
-                    UnsafeSanitizer.setErrorAction(ErrorAction.NONE);
+                    UnsafeSanitizer.modifySettings().setErrorAction(ErrorAction.NONE);
                 });
-                UnsafeSanitizer.setErrorAction(ErrorAction.THROW);
+                UnsafeSanitizer.modifySettings().setErrorAction(ErrorAction.THROW);
 
                 // Sees original global error again
                 assertSame(lastErrorGlobal, UnsafeSanitizer.getLastError());
@@ -382,9 +382,9 @@ class ScopedNativeMemorySanitizerTest {
                     assertSame(lastError, UnsafeSanitizer.getLastError());
 
                     // Allow to exit `withScopedNativeMemoryTracking` despite non-propagated last error
-                    UnsafeSanitizer.setErrorAction(ErrorAction.NONE);
+                    UnsafeSanitizer.modifySettings().setErrorAction(ErrorAction.NONE);
                 });
-                UnsafeSanitizer.setErrorAction(ErrorAction.THROW);
+                UnsafeSanitizer.modifySettings().setErrorAction(ErrorAction.THROW);
 
                 assertNull(UnsafeSanitizer.getLastError());
                 threadResult.set(Boolean.TRUE);

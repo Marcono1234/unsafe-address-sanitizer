@@ -27,12 +27,12 @@ class UnsafeThrowErrorTest {
     @BeforeAll
     static void installAgent() {
         UnsafeSanitizer.installAgent(AgentSettings.defaultSettings());
-        UnsafeSanitizer.setErrorAction(ErrorAction.THROW);
+        UnsafeSanitizer.modifySettings().setErrorAction(ErrorAction.THROW);
         // This mainly prevents spurious errors in case any other test failed to free memory
         TestSupport.checkAllNativeMemoryFreedAndForget();
 
         // TODO: Instead of disabling alignment check here, adjust tests to only perform aligned access?
-        UnsafeSanitizerImpl.setCheckAddressAlignment(false);
+        UnsafeSanitizer.modifySettings().setAddressAlignmentChecking(false);
     }
 
     @AfterEach
@@ -46,8 +46,8 @@ class UnsafeThrowErrorTest {
 
     @AfterAll
     static void restoreAlignmentChecking() {
-        // TODO: See `setCheckAddressAlignment` call above
-        UnsafeSanitizerImpl.setCheckAddressAlignment(true);
+        // TODO: See `setAddressAlignmentChecking` call above
+        UnsafeSanitizer.modifySettings().setAddressAlignmentChecking(true);
     }
 
     /** Reallocates memory, not expecting any error */

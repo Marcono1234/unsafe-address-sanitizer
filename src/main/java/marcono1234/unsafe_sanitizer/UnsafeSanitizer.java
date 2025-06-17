@@ -63,8 +63,10 @@ public class UnsafeSanitizer {
      * @param instrumentationLogging
      *      Whether to log information during instrumentation. Can be useful for troubleshooting.
      * @param addressAlignmentChecking
-     *      Whether to check if the native address is aligned when reading or writing primitive values.
+     *      Whether to check if native addresses are aligned when reading or writing primitive values.
      *      It depends on the operating system and CPU whether unaligned access is safe or leads to undefined behavior.
+     *
+     *      <p>Can be changed at runtime with {@link ModifySettings#setAddressAlignmentChecking(boolean)}.
      * @param globalNativeMemorySanitizer
      *      Whether to enable the native memory sanitizer globally.
      *
@@ -74,6 +76,8 @@ public class UnsafeSanitizer {
      *
      *      <p>Regardless of whether the sanitizer is enabled globally, it is always possible to sanitize native memory
      *      access in a local scope using {@link #withScopedNativeMemoryTracking(boolean, MemoryAction)}.
+     *
+     *      <p>Can be disabled at runtime with {@link ModifySettings#disableNativeMemorySanitizer()}.
      * @param uninitializedMemoryTracking
      *     Whether to track if native memory is initialized or not.
      *
@@ -82,10 +86,10 @@ public class UnsafeSanitizer {
      *     {@linkplain #withGlobalNativeMemorySanitizer(boolean) disabled}, but can affect {@linkplain #withScopedNativeMemoryTracking(MemoryAction) scoped tracking}.
      * @param errorAction
      *      Defines how to handle bad memory access; can be changed at runtime with
-     *      {@link UnsafeSanitizer#setErrorAction(ErrorAction)}.
+     *      {@link ModifySettings#setErrorAction(ErrorAction)}.
      * @param callDebugLogging
      *      Whether to log debug information about called {@code Unsafe} methods; can be changed at runtime
-     *      with {@link UnsafeSanitizer#setIsDebugLogging(boolean)}.
+     *      with {@link ModifySettings#setCallDebugLogging(boolean)}.
      */
     public record AgentSettings(
         boolean instrumentationLogging,
@@ -498,34 +502,85 @@ public class UnsafeSanitizer {
         }
     }
 
-    // Important: Guard all these methods with a `checkInstalled()`, otherwise they will fail because agent classes
+    /**
+     * Allows modifying some of the settings of the sanitizer at runtime, after it had been installed (on JVM startup
+     * or {@linkplain #installAgent(AgentSettings) at runtime}). Not all settings can be changed at runtime; prefer
+     * directly specifying the desired {@link AgentSettings} when the sanitizer is installed.
+     *
+     * <p>An instance can be obtained with {@link #modifySettings()}. Calling any of its methods directly applies
+     * the settings change. The methods return {@code this} to allow chaining.
+     */
+    // TODO: Should this update / replace the `agentSettings` (while holding `installLock`)?
+    // TODO: Remove ModifySettings (or some of its methods) and only allow configuring settings on installation through AgentSettings?
+    public static class ModifySettings {
+        private ModifySettings() {
+        }
+
+        private static final ModifySettings INSTANCE = new ModifySettings();
+
+        /**
+         * Sets whether to check if native addresses are aligned when reading or writing primitive values.
+         *
+         * <p>This setting can already be specified when the agent is installed by using {@link AgentSettings#withAddressAlignmentChecking(boolean)}.
+         */
+        public ModifySettings setAddressAlignmentChecking(boolean addressAlignmentChecking) {
+            UnsafeSanitizerImpl.setCheckAddressAlignment(addressAlignmentChecking);
+            return this;
+        }
+
+        /**
+         * Disables global sanitization of native memory access.
+         *
+         * <p>When disabled, only field and array memory access is sanitized. Disabling this can be useful when
+         * the tested code is known to not use native memory, but the test or fuzzing framework is using
+         * native memory and the sanitizer could interfere with it or slow it down.
+         *
+         * <p>This setting can already be specified when the agent is installed by using {@link AgentSettings#withGlobalNativeMemorySanitizer(boolean)}.
+         */
+        // No method for enabling this again because otherwise could lead to spurious errors for memory
+        // which was allocated while sanitizer was disabled
+        public ModifySettings disableNativeMemorySanitizer() {
+            UnsafeSanitizerImpl.disableNativeMemorySanitizer();
+            return this;
+        }
+
+        /**
+         * Sets the error action, that is, how to react to bad memory access.
+         *
+         * <p>This setting can already be specified when the agent is installed by using {@link AgentSettings#withErrorAction(ErrorAction)}.
+         */
+        public ModifySettings setErrorAction(ErrorAction errorAction) {
+            Objects.requireNonNull(errorAction);
+            UnsafeSanitizerImpl.setErrorAction(errorAction.getAgentErrorAction());
+            return this;
+        }
+
+        /**
+         * Sets whether debug logging for calls to {@code Unsafe} methods should be enabled.
+         *
+         * <p>This setting can already be specified when the agent is installed by using {@link AgentSettings#withCallDebugLogging(boolean)}.
+         */
+        public ModifySettings setCallDebugLogging(boolean callDebugLogging) {
+            UnsafeSanitizerImpl.setIsDebugLogging(callDebugLogging);
+            return this;
+        }
+    }
+
+    /**
+     * Allows modifying some of the sanitizer settings at runtime.
+     * Not all settings can be changed at runtime, prefer directly specifying the desired {@link AgentSettings}
+     * when the sanitizer is installed.
+     *
+     * @throws IllegalStateException
+     *      if the sanitizer agent has not been installed yet
+     */
+    public static ModifySettings modifySettings() {
+        checkInstalled();
+        return ModifySettings.INSTANCE;
+    }
+
+    // Important: Guard all these methods with `checkInstalled()`, otherwise they will fail because agent classes
     // have not been added to classpath yet
-
-    // TODO: Remove and only allow configuring this through AgentSettings?
-    /**
-     * Sets the error action, that is, how to react to bad memory access.
-     *
-     * <p>This setting can already be specified when the agent is installed by using {@link AgentSettings#withErrorAction(ErrorAction)}.
-     */
-    public static void setErrorAction(ErrorAction errorAction) {
-        Objects.requireNonNull(errorAction);
-        checkInstalled();
-        UnsafeSanitizerImpl.setErrorAction(errorAction.getAgentErrorAction());
-
-        // TODO: Should this update / replace the `agentSettings` (while holding `installLock`)?
-    }
-
-    /**
-     * Sets whether debug logging for {@code Unsafe} methods should be enabled.
-     *
-     * <p>This setting can already be specified when the agent is installed by using {@link AgentSettings#withCallDebugLogging(boolean)}.
-     */
-    public static void setIsDebugLogging(boolean isDebugLogging) {
-        checkInstalled();
-        UnsafeSanitizerImpl.setIsDebugLogging(isDebugLogging);
-
-        // TODO: Should this update / replace the `agentSettings` (while holding `installLock`)?
-    }
 
     // TODO: Maybe only provide `getAndClearLastError()` but not `getLastError()` and `clearLastError()`?
     //   (but remove `@CheckReturnValue` then)
@@ -534,8 +589,8 @@ public class UnsafeSanitizer {
      * Gets the last bad memory access error, if any, returning {@code null} otherwise.
      *
      * <p>This method is useful to verify that no bad memory access error has not been discarded somewhere
-     * in the code calling {@code Unsafe}, or when an {@linkplain #setErrorAction(ErrorAction) error action} is
-     * used which does not throw the error. The last error is set regardless of whether the original error
+     * in the code calling {@code Unsafe}, or when an {@linkplain AgentSettings#errorAction() error action}
+     * is used which does not throw the error. The last error is set regardless of whether the original error
      * was propagated or not. And it will not be cleared automatically if subsequent usage of {@code Unsafe}
      * methods performs good memory access.
      *
@@ -575,25 +630,6 @@ public class UnsafeSanitizer {
         // Directly perform this using `AtomicReference#getAndSet` to avoid a race condition where clearing
         // erroneously clears a different error which has been set in the meantime
         return UnsafeSanitizerImpl.getLastErrorRef().getAndSet(null);
-    }
-
-    // TODO: Remove and only allow configuring this through AgentSettings?
-    /**
-     * Disables global sanitization of native memory access.
-     *
-     * <p>When disabled, only field and array memory access is sanitized. Disabling this can be useful when
-     * the tested code is known to not use native memory, but the test or fuzzing framework is using
-     * native memory and the sanitizer could interfere with it or slow it down.
-     *
-     * <p>This setting can already be specified when the agent is installed by using {@link AgentSettings#withGlobalNativeMemorySanitizer(boolean)}.
-     */
-    // No method for enabling this again because otherwise could lead to spurious errors for memory
-    // which was allocated while sanitizer was disabled
-    public static void disableNativeMemorySanitizer() {
-        checkInstalled();
-        UnsafeSanitizerImpl.disableNativeMemorySanitizer();
-
-        // TODO: Should this update / replace the `agentSettings` (while holding `installLock`)?
     }
 
     /**
@@ -636,7 +672,7 @@ public class UnsafeSanitizer {
 
         // Note: This does not actually check that memory has been registered with `registerAllocatedMemory` before,
         // but that is probably fine for now; in case of double free this would then raise an error
-        // TODO: Maybe handle it better when ErrorAction is not THROW (and this only returns false instead of throwing)?
+        // TODO: Maybe handle it better when ErrorAction is not THROW (and `freeMemory` only returns false instead of throwing)?
         if (!UnsafeSanitizerImpl.freeMemory(address)) {
             throw new IllegalStateException("Failed to deregister allocated memory");
         }
