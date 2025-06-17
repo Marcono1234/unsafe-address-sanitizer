@@ -1,5 +1,6 @@
 package marcono1234.unsafe_sanitizer.agent_impl;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
@@ -21,14 +22,23 @@ class FieldAccessSanitizer {
 
     // Two separate maps, one for static fields and one for instance fields, because the way their
     // offset is obtained from `Unsafe` differs, and there is no guarantee that there won't be collisions
-    private final Map<Class<?>, Map<Long, FieldData>> staticFieldsCache;
-    private final Map<Class<?>, Map<Long, FieldData>> instanceFieldsCache;
+    private final ClassValue<Map<Long, FieldData>> staticFieldsCache;
+    private final ClassValue<Map<Long, FieldData>> instanceFieldsCache;
 
     public FieldAccessSanitizer() {
-        // Important: Must use fully synchronized maps here, cannot use read-write lock because for WeakHashMap
-        // even methods which normally don't mutate map (e.g. `size()`) might remove stale entries
-        staticFieldsCache = Collections.synchronizedMap(new WeakHashMap<>());
-        instanceFieldsCache = Collections.synchronizedMap(new WeakHashMap<>());
+        // ClassValue seems to be thread-safe (see also https://bugs.openjdk.org/browse/JDK-8358966), as desired
+        staticFieldsCache = new ClassValue<>() {
+            @Override
+            protected Map<Long, FieldData> computeValue(@NotNull Class<?> c) {
+                return createStaticFieldsOffsetMap(c);
+            }
+        };
+        instanceFieldsCache = new ClassValue<>() {
+            @Override
+            protected Map<Long, FieldData> computeValue(@NotNull Class<?> c) {
+                return createInstanceFieldsOffsetMap(c);
+            }
+        };
     }
 
     @VisibleForTesting // currently this method only exists to simplify tests
@@ -77,11 +87,11 @@ class FieldAccessSanitizer {
              */
 
             classDisplayName = c.getTypeName();
-            fieldData = getStaticFieldData(c, offset);
+            fieldData = staticFieldsCache.get(c).get(offset);
         } else {
             Class<?> c = obj.getClass();
             classDisplayName = c.getTypeName();
-            fieldData = getInstanceFieldData(c, offset);
+            fieldData = instanceFieldsCache.get(c).get(offset);
         }
 
         if (fieldData == null) {
@@ -111,11 +121,6 @@ class FieldAccessSanitizer {
         return true;
     }
 
-    private FieldData getStaticFieldData(Class<?> c, long offset) {
-        var offsetMap = staticFieldsCache.computeIfAbsent(c, key -> createStaticFieldsOffsetMap(c));
-        return offsetMap.get(offset);
-    }
-
     private static Map<Long, FieldData> createStaticFieldsOffsetMap(Class<?> c) {
         Map<Long, FieldData> map = new HashMap<>();
         for (Field f : c.getDeclaredFields()) {
@@ -135,11 +140,6 @@ class FieldAccessSanitizer {
         }
 
         return map;
-    }
-
-    private FieldData getInstanceFieldData(Class<?> c, long offset) {
-        var offsetMap = instanceFieldsCache.computeIfAbsent(c, key -> createInstanceFieldsOffsetMap(c));
-        return offsetMap.get(offset);
     }
 
     private static Map<Long, FieldData> createInstanceFieldsOffsetMap(Class<?> c) {
