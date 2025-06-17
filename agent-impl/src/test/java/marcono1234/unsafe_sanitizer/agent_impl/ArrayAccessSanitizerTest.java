@@ -59,7 +59,7 @@ class ArrayAccessSanitizerTest {
             var a = new byte[0];
             long offset = ARRAY_BYTE_BASE_OFFSET;
             String expectedPrefix = "Bad array access at offset " + offset + ", size ";
-            String expectedSuffix = "; max offset is " + ARRAY_BYTE_BASE_OFFSET;
+            String expectedSuffix = "; exceeds end offset " + ARRAY_BYTE_BASE_OFFSET;
             assertThrows(
                 () -> ArrayAccessSanitizer.onAccess(a, offset, MemorySize.BOOLEAN),
                 expectedPrefix + MemorySize.BOOLEAN.getBytesCount() + expectedSuffix
@@ -117,7 +117,7 @@ class ArrayAccessSanitizerTest {
 
             assertThrows(
                 () -> ArrayAccessSanitizer.onAccess(a, alignedOffset, memorySize),
-                "Bad array access at offset " + alignedOffset + ", size " + memorySize.getBytesCount() + "; max offset is " + (ARRAY_BYTE_BASE_OFFSET + a.length * ARRAY_BYTE_INDEX_SCALE)
+                "Bad array access at offset " + alignedOffset + ", size " + memorySize.getBytesCount() + "; exceeds end offset " + (ARRAY_BYTE_BASE_OFFSET + a.length * ARRAY_BYTE_INDEX_SCALE)
             );
         }
 
@@ -181,7 +181,7 @@ class ArrayAccessSanitizerTest {
             var a = new byte[0];
             assertThrows(
                 () -> ArrayAccessSanitizer.onAccess(a, ARRAY_BYTE_BASE_OFFSET, 1),
-                "Bad array access at offset " + ARRAY_BYTE_BASE_OFFSET + ", size 1; max offset is " + ARRAY_BYTE_BASE_OFFSET
+                "Bad array access at offset " + ARRAY_BYTE_BASE_OFFSET + ", size 1; exceeds end offset " + ARRAY_BYTE_BASE_OFFSET
             );
         }
         {
@@ -190,14 +190,14 @@ class ArrayAccessSanitizerTest {
             // Should also validate when trying to access 0 bytes
             assertThrows(
                 () -> ArrayAccessSanitizer.onAccess(a, offset, 0),
-                "Bad array access at offset " + offset + ", size 0; max offset is " + ARRAY_BYTE_BASE_OFFSET
+                "Bad array access at offset " + offset + ", size 0; exceeds end offset " + ARRAY_BYTE_BASE_OFFSET
             );
         }
         {
             var a = new byte[1];
             assertThrows(
                 () -> ArrayAccessSanitizer.onAccess(a, ARRAY_BYTE_BASE_OFFSET, 2),
-                "Bad array access at offset " + ARRAY_BYTE_BASE_OFFSET + ", size 2; max offset is " + (ARRAY_BYTE_BASE_OFFSET + a.length * ARRAY_BYTE_INDEX_SCALE)
+                "Bad array access at offset " + ARRAY_BYTE_BASE_OFFSET + ", size 2; exceeds end offset " + (ARRAY_BYTE_BASE_OFFSET + a.length * ARRAY_BYTE_INDEX_SCALE)
             );
         }
         {
@@ -205,7 +205,7 @@ class ArrayAccessSanitizerTest {
             long offset = ARRAY_BYTE_BASE_OFFSET + ARRAY_BYTE_INDEX_SCALE;
             assertThrows(
                 () -> ArrayAccessSanitizer.onAccess(a, offset, 2),
-                "Bad array access at offset " + offset + ", size 2; max offset is " + (ARRAY_BYTE_BASE_OFFSET + a.length * ARRAY_BYTE_INDEX_SCALE)
+                "Bad array access at offset " + offset + ", size 2; exceeds end offset " + (ARRAY_BYTE_BASE_OFFSET + a.length * ARRAY_BYTE_INDEX_SCALE)
             );
         }
 

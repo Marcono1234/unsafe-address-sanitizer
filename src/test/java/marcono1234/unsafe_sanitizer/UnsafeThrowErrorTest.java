@@ -421,7 +421,7 @@ class UnsafeThrowErrorTest {
         long arrayEndOffset = ARRAY_OBJECT_BASE_OFFSET + (long) o.length * ARRAY_OBJECT_INDEX_SCALE;
         e = assertBadMemoryAccess(() -> unsafe.putObject(o, arrayEndOffset, BigDecimal.valueOf(1)));
         assertEquals(
-            "Bad array access at offset " + arrayEndOffset + ", size " + ARRAY_OBJECT_INDEX_SCALE + "; max offset is " + arrayEndOffset,
+            "Bad array access at offset " + arrayEndOffset + ", size " + ARRAY_OBJECT_INDEX_SCALE + "; exceeds end offset " + arrayEndOffset,
             e.getMessage()
         );
 
@@ -637,7 +637,7 @@ class UnsafeThrowErrorTest {
             // Should fail for invalid address, even if size is 0
             long maxOffset = ARRAY_BYTE_BASE_OFFSET + a.length * ARRAY_BYTE_INDEX_SCALE;
             var e = assertBadMemoryAccess(() -> unsafe.copyMemory(a, ARRAY_BYTE_BASE_OFFSET, a, maxOffset + 1, 0));
-            assertEquals("Bad array access at offset " + (maxOffset + 1) + ", size 0; max offset is " + maxOffset, e.getMessage());
+            assertEquals("Bad array access at offset " + (maxOffset + 1) + ", size 0; exceeds end offset " + maxOffset, e.getMessage());
             e = assertBadMemoryAccess(() -> unsafe.copyMemory(a, ARRAY_BYTE_BASE_OFFSET, null, -1, 0));
             assertEquals("Invalid address: -1", e.getMessage());
             e = assertBadMemoryAccess(() -> unsafe.copyMemory(null, -1, a, ARRAY_BYTE_BASE_OFFSET, 0));
@@ -812,7 +812,7 @@ class UnsafeThrowErrorTest {
             unsafe.setMemory(b, ARRAY_BYTE_BASE_OFFSET, b.length + 1, (byte) 5);
         });
         assertEquals(
-            "Bad array access at offset " + ARRAY_BYTE_BASE_OFFSET + ", size 5; max offset is " + (ARRAY_BYTE_BASE_OFFSET + 4 * ARRAY_BYTE_INDEX_SCALE),
+            "Bad array access at offset " + ARRAY_BYTE_BASE_OFFSET + ", size 5; exceeds end offset " + (ARRAY_BYTE_BASE_OFFSET + 4 * ARRAY_BYTE_INDEX_SCALE),
             e.getMessage()
         );
 

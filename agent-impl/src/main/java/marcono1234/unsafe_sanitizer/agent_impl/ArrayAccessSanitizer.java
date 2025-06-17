@@ -116,11 +116,11 @@ class ArrayAccessSanitizer {
         if (offset < baseOffset) {
             return reportError("Bad array access at offset " + offset + "; min offset is " + baseOffset);
         }
-        long maxOffset = baseOffset + (arrayLength * indexScale);
-        // Overflow-safe variant, uses `Long.compareUnsigned` here since `maxOffset` might have overflown already (?)
-        if (Long.compareUnsigned(offset + bytesCount, maxOffset) > 0) {
+        long endOffset = baseOffset + (arrayLength * indexScale);
+        // Overflow-safe variant, uses `Long.compareUnsigned` here since `endOffset` might have overflown already (?)
+        if (Long.compareUnsigned(offset + bytesCount, endOffset) > 0) {
             return reportError("Bad array access at offset " + offset + ", size " + bytesCount
-                + "; max offset is " + Long.toUnsignedString(maxOffset));
+                + "; exceeds end offset " + Long.toUnsignedString(endOffset));
         }
 
         // `Unsafe#getInt` documentation sounds like access must be aligned by scale

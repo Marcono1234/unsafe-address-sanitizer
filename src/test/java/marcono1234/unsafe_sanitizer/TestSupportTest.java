@@ -49,7 +49,7 @@ class TestSupportTest {
         var e = assertBadMemoryAccess(() -> performBadAccess());
         assertEquals(BadMemoryAccessError.class, e.getClass());
         assertEquals(
-            "Bad array access at offset " + ARRAY_BYTE_BASE_OFFSET + ", size 1; max offset is " + ARRAY_BYTE_BASE_OFFSET,
+            "Bad array access at offset " + ARRAY_BYTE_BASE_OFFSET + ", size 1; exceeds end offset " + ARRAY_BYTE_BASE_OFFSET,
             e.getMessage()
         );
         // Last error should have been cleared
