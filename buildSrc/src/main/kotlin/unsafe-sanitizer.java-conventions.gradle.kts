@@ -28,7 +28,7 @@ tasks.compileJava {
 }
 
 // TODO: Maybe configure this using test suites instead, for consistency
-tasks.withType<Test>() {
+tasks.withType<Test> {
     useJUnitPlatform()
 
     testLogging {

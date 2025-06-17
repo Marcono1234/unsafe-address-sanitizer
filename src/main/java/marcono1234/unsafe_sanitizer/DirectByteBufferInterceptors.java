@@ -21,6 +21,9 @@ interface DirectByteBufferInterceptors {
     // instead of `ByteBuffer.allocateDirect` could intercept `DirectByteBuffer` constructor. But that would also be
     // brittle then because it relies on its implementation details.
 
+    /**
+     * {@link ByteBuffer#allocateDirect(int)}
+     */
     class AllocateDirect {
         // Note: Don't need to check arguments here since `ByteBuffer.allocateDirect` is public API and validates
         // its arguments
