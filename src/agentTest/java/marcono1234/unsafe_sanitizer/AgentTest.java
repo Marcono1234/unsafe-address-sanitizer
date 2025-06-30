@@ -34,7 +34,7 @@ class AgentTest {
 
         long a = unsafe.allocateMemory(3);
         error = assertThrows(Error.class, () -> unsafe.setMemory(a, 4, (byte) 1));
-        assertEquals("Size 4 exceeds actual size 3 at " + a, error.getMessage());
+        assertEquals("Size 4 exceeds actual size 3 at address " + a, error.getMessage());
         unsafe.freeMemory(a);
     }
 

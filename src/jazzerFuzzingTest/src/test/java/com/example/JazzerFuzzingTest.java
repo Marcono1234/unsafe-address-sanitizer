@@ -43,7 +43,7 @@ class JazzerFuzzingTest {
         long address = unsafe.allocateMemory(10);
         try {
             var e = assertThrows(Error.class, () -> unsafe.getByte(address));
-            assertEquals("Trying to read uninitialized data at " + address + ", size 1", e.getMessage());
+            assertEquals("Trying to read uninitialized data at address " + address + ", size 1", e.getMessage());
         } finally {
             unsafe.freeMemory(address);
         }

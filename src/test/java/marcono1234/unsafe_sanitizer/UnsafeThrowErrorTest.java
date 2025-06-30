@@ -331,7 +331,7 @@ class UnsafeThrowErrorTest {
             // Assumes that no allocation has been performed at this address
             unsafe.putAddress(1, 0);
         });
-        assertEquals("Access outside of section at 1", e.getMessage());
+        assertEquals("Access outside of section, at address 1", e.getMessage());
 
         e = assertBadMemoryAccess(() -> unsafe.putAddress(a, -1));
         assertEquals("Invalid address value: -1", e.getMessage());
@@ -343,7 +343,7 @@ class UnsafeThrowErrorTest {
                 unsafe.putAddress(a + 1, 0);
             });
             assertEquals(
-                "Access outside of section at " + (a + 1) + ", size " + ADDRESS_SIZE + " (previous section: " + a + ", size " + ADDRESS_SIZE + ")",
+                "Access outside of section at address " + (a + 1) + ", size " + ADDRESS_SIZE + " (previous section: address " + a + ", size " + ADDRESS_SIZE + ")",
                 e2.getMessage()
             );
         });
@@ -453,7 +453,7 @@ class UnsafeThrowErrorTest {
 
         var e = assertBadMemoryAccess(() -> unsafe.compareAndSwapInt(null, a + 1, 0, 1));
         assertEquals(
-            "Access outside of section at " + (a + 1) + ", size 4 (previous section: " + a + ", size 4)",
+            "Access outside of section at address " + (a + 1) + ", size 4 (previous section: address " + a + ", size 4)",
             e.getMessage()
         );
 
@@ -476,7 +476,7 @@ class UnsafeThrowErrorTest {
 
         var e = assertBadMemoryAccess(() -> unsafe.compareAndSwapLong(null, a + 1, 0, 1));
         assertEquals(
-            "Access outside of section at " + (a + 1) + ", size 8 (previous section: " + a + ", size 8)",
+            "Access outside of section at address " + (a + 1) + ", size 8 (previous section: address " + a + ", size 8)",
             e.getMessage()
         );
 
@@ -501,7 +501,7 @@ class UnsafeThrowErrorTest {
 
         var e = assertBadMemoryAccess(() -> unsafe.getAndAddInt(null, a + 1, 1));
         assertEquals(
-            "Access outside of section at " + (a + 1) + ", size 4 (previous section: " + a + ", size 4)",
+            "Access outside of section at address " + (a + 1) + ", size 4 (previous section: address " + a + ", size 4)",
             e.getMessage()
         );
 
@@ -526,7 +526,7 @@ class UnsafeThrowErrorTest {
 
         var e = assertBadMemoryAccess(() -> unsafe.getAndAddLong(null, a + 1, 1));
         assertEquals(
-            "Access outside of section at " + (a + 1) + ", size 8 (previous section: " + a + ", size 8)",
+            "Access outside of section at address " + (a + 1) + ", size 8 (previous section: address " + a + ", size 8)",
             e.getMessage()
         );
 
@@ -551,7 +551,7 @@ class UnsafeThrowErrorTest {
 
         var e = assertBadMemoryAccess(() -> unsafe.getAndSetInt(null, a + 1, 1));
         assertEquals(
-            "Access outside of section at " + (a + 1) + ", size 4 (previous section: " + a + ", size 4)",
+            "Access outside of section at address " + (a + 1) + ", size 4 (previous section: address " + a + ", size 4)",
             e.getMessage()
         );
 
@@ -576,7 +576,7 @@ class UnsafeThrowErrorTest {
 
         var e = assertBadMemoryAccess(() -> unsafe.getAndSetLong(null, a + 1, 1));
         assertEquals(
-            "Access outside of section at " + (a + 1) + ", size 8 (previous section: " + a + ", size 8)",
+            "Access outside of section at address " + (a + 1) + ", size 8 (previous section: address " + a + ", size 8)",
             e.getMessage()
         );
 
@@ -906,14 +906,14 @@ class UnsafeThrowErrorTest {
 
         e = assertBadMemoryAccess(() -> unsafe.setMemory(a + 1, size, (byte) 0));
         assertEquals(
-            "Access outside of section at " + (a + 1) + ", size 8 (previous section: " + a + ", size 8)",
+            "Access outside of section at address " + (a + 1) + ", size 8 (previous section: address " + a + ", size 8)",
             e.getMessage()
         );
 
         // Should fail for invalid address, even if size is 0
         e = assertBadMemoryAccess(() -> unsafe.setMemory(a + size + 1, 0, (byte) 4));
         assertEquals(
-            "Access outside of section at " + (a + size + 1) + ", size 0 (previous section: " + a + ", size 8)",
+            "Access outside of section at address " + (a + size + 1) + ", size 0 (previous section: address " + a + ", size 8)",
             e.getMessage()
         );
 

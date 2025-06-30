@@ -125,7 +125,7 @@ class DirectByteBufferTest {
     @Test
     void outOfBoundsAccess() {
         long badAddress = address - 1;
-        String expectedMessage = "Access outside of section at " + badAddress;
+        String expectedMessage = "Access outside of section, at address " + badAddress;
         assertBadMemoryAccess(
             () -> unsafe.getLong(badAddress),
             expectedMessage
@@ -136,8 +136,8 @@ class DirectByteBufferTest {
         );
 
         long badAddressEnd = address + bytesCount - (Long.BYTES - 1);
-        expectedMessage = "Access outside of section at " + badAddressEnd + ", size " + Long.BYTES
-            + " (previous section: " + address + ", size " + bytesCount + ")";
+        expectedMessage = "Access outside of section at address " + badAddressEnd + ", size " + Long.BYTES
+            + " (previous section: address " + address + ", size " + bytesCount + ")";
         assertBadMemoryAccess(
             () -> unsafe.getLong(badAddressEnd),
             expectedMessage
@@ -169,7 +169,7 @@ class DirectByteBufferTest {
         long uninitializedAddress = assertNoBadMemoryAccessGet(() -> unsafe.allocateMemory(bytesCount));
         assertBadMemoryAccess(
             () -> unsafe.copyMemory(uninitializedAddress, address, bytesCount),
-            "Trying to copy uninitialized data from " + uninitializedAddress + ", size 10"
+            "Trying to copy uninitialized data from address " + uninitializedAddress + ", size 10"
         );
         // Clean up
         freeMemory(uninitializedAddress);

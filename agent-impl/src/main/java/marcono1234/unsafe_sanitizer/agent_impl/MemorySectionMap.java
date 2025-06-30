@@ -62,7 +62,7 @@ class MemorySectionMap {
 
     private static void checkAddress(long address) {
         if (address < 0) {
-            throw new IllegalArgumentException("Invalid address " + address);
+            throw new IllegalArgumentException("Invalid address: " + address);
         }
     }
 
@@ -78,22 +78,24 @@ class MemorySectionMap {
 
         int index = Arrays.binarySearch(addresses, 0, count, address);
         if (index >= 0) {
-            throw new IllegalArgumentException("Overwriting entry at " + address);
+            throw new IllegalArgumentException("Overwriting existing section at address " + address);
         }
         index = -(index + 1);
+        // Check for collision with previous section
         if (index > 0) {
             long previousAddress = addresses[index - 1];
             long previousSize = sizes[index - 1];
             // Overflow-safe variant of `previousAddress + previousSize > address`
             if (previousAddress > address - previousSize) {
-                throw new IllegalArgumentException("Section at " + address + " collides with existing section at " + previousAddress);
+                throw new IllegalArgumentException("Section at address " + address + " collides with previous section at address " + previousAddress);
             }
         }
+        // Check for collision with next section
         if (index < count) {
             long nextAddress = addresses[index];
             // Overflow-safe variant of `address + size > nextAddress`
             if (address > nextAddress - size) {
-                throw new IllegalArgumentException("Section at " + address + " collides with existing section at " + nextAddress);
+                throw new IllegalArgumentException("Section at address " + address + " collides with next section at address " + nextAddress);
             }
         }
 
@@ -225,7 +227,7 @@ class MemorySectionMap {
             if (isRead) {
                 if (isTrackingUninitialized[sectionIndex]) {
                     if (!uninitializedMemoryTracker.isInitialized(address, size)) {
-                        throw new IllegalArgumentException("Trying to read uninitialized data at " + address + ", size " + size);
+                        throw new IllegalArgumentException("Trying to read uninitialized data at address " + address + ", size " + size);
                     }
                 }
             } else {
@@ -257,7 +259,7 @@ class MemorySectionMap {
             // If destination is assumed to be fully initialized, then require that source is fully initialized as well
             else if (isTrackingUninitialized[srcSectionIndex]) {
                 if (!uninitializedMemoryTracker.isInitialized(srcAddress, size)) {
-                    throw new IllegalArgumentException("Trying to copy uninitialized data from " + srcAddress + ", size " + size);
+                    throw new IllegalArgumentException("Trying to copy uninitialized data from address " + srcAddress + ", size " + size);
                 }
             }
         }
@@ -278,7 +280,7 @@ class MemorySectionMap {
         if (index >= 0) {
             long actualSize = sizes[index];
             if (size > actualSize) {
-                throw new IllegalArgumentException("Size " + size + " exceeds actual size " + actualSize + " at " + address);
+                throw new IllegalArgumentException("Size " + size + " exceeds actual size " + actualSize + " at address " + address);
             }
         }
         // Otherwise need to check size of section which starts before the address
@@ -286,14 +288,14 @@ class MemorySectionMap {
             index = -(index + 1);
             index--; // check previous section
             if (index < 0) {
-                throw new IllegalArgumentException("Access outside of section at " + address);
+                throw new IllegalArgumentException("Access outside of section, at address " + address);
             }
 
             long previousAddress = addresses[index];
             long previousSize = sizes[index];
             // Overflow-safe variant of `previousAddress + previousSize < address + size`
             if (previousAddress - size < address - previousSize) {
-                throw new IllegalArgumentException("Access outside of section at " + address + ", size " + size + " (previous section: " + previousAddress + ", size " + previousSize + ")");
+                throw new IllegalArgumentException("Access outside of section at address " + address + ", size " + size + " (previous section: address " + previousAddress + ", size " + previousSize + ")");
             }
         }
 
