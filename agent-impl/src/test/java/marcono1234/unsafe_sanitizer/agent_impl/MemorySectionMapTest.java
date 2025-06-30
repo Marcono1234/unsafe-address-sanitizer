@@ -19,7 +19,7 @@ class MemorySectionMapTest {
     }
 
     // For most tests here ignore uninitialized memory tracking
-    private static final boolean NO_TRACKING = false;
+    private static final boolean ALWAYS_INITIALIZED = true;
     private static final boolean IS_READ = true;
 
     // TODO: Check exception messages?
@@ -30,13 +30,13 @@ class MemorySectionMapTest {
     @Test
     void addSection() {
         assertTrue(map.isEmpty());
-        map.addSection(0, 1, NO_TRACKING);
+        map.addSection(0, 1, ALWAYS_INITIALIZED);
         assertFalse(map.isEmpty());
-        map.addSection(1, 2, NO_TRACKING);
-        map.addSection(3, 1, NO_TRACKING);
-        map.addSection(Long.MAX_VALUE, Long.MAX_VALUE, NO_TRACKING);
-        map.addSection(10, 1, NO_TRACKING);
-        map.addSection(9, 1, NO_TRACKING);
+        map.addSection(1, 2, ALWAYS_INITIALIZED);
+        map.addSection(3, 1, ALWAYS_INITIALIZED);
+        map.addSection(Long.MAX_VALUE, Long.MAX_VALUE, ALWAYS_INITIALIZED);
+        map.addSection(10, 1, ALWAYS_INITIALIZED);
+        map.addSection(9, 1, ALWAYS_INITIALIZED);
 
         assertEquals(
             List.of(
@@ -69,37 +69,37 @@ class MemorySectionMapTest {
             Section section = sectionsToAdd.remove(i);
             expectedSections.add(section);
 
-            map.addSection(section.address(), section.bytesCount(), NO_TRACKING);
+            map.addSection(section.address(), section.bytesCount(), ALWAYS_INITIALIZED);
             assertEquals(new ArrayList<>(expectedSections), map.getAllSections());
         }
     }
 
     @Test
     void addSection_Error() {
-        assertThrows(() -> map.addSection(-1, 1, NO_TRACKING));
+        assertThrows(() -> map.addSection(-1, 1, ALWAYS_INITIALIZED));
         assertEquals(List.of(), map.getAllSections());
 
-        assertThrows(() -> map.addSection(1, 0, NO_TRACKING));
+        assertThrows(() -> map.addSection(1, 0, ALWAYS_INITIALIZED));
         assertEquals(List.of(), map.getAllSections());
 
-        assertThrows(() -> map.addSection(1, -1, NO_TRACKING));
+        assertThrows(() -> map.addSection(1, -1, ALWAYS_INITIALIZED));
         assertEquals(List.of(), map.getAllSections());
 
-        map.addSection(1, 2, NO_TRACKING);
+        map.addSection(1, 2, ALWAYS_INITIALIZED);
         // Should fail adding duplicate or overlapping sections
-        assertThrows(() -> map.addSection(1, 2, NO_TRACKING));
+        assertThrows(() -> map.addSection(1, 2, ALWAYS_INITIALIZED));
         assertEquals(List.of(new Section(1, 2)), map.getAllSections());
-        assertThrows(() -> map.addSection(0, 2, NO_TRACKING));
+        assertThrows(() -> map.addSection(0, 2, ALWAYS_INITIALIZED));
         assertEquals(List.of(new Section(1, 2)), map.getAllSections());
-        assertThrows(() -> map.addSection(2, 4, NO_TRACKING));
+        assertThrows(() -> map.addSection(2, 4, ALWAYS_INITIALIZED));
         assertEquals(List.of(new Section(1, 2)), map.getAllSections());
     }
 
     @Test
     void removeSection() {
-        map.addSection(0, 1, NO_TRACKING);
-        map.addSection(1, 2, NO_TRACKING);
-        map.addSection(3, 1, NO_TRACKING);
+        map.addSection(0, 1, ALWAYS_INITIALIZED);
+        map.addSection(1, 2, ALWAYS_INITIALIZED);
+        map.addSection(3, 1, ALWAYS_INITIALIZED);
 
         map.removeSection(3);
         assertEquals(
@@ -126,7 +126,7 @@ class MemorySectionMapTest {
     void removeSection_Error() {
         assertThrows(() -> map.removeSection(0));
 
-        map.addSection(1, 5, NO_TRACKING);
+        map.addSection(1, 5, ALWAYS_INITIALIZED);
         // Cannot remove in the middle of a section
         assertThrows(() -> map.removeSection(2));
 
@@ -140,7 +140,7 @@ class MemorySectionMapTest {
         List<Section> allSections = new ArrayList<>();
         for (int i = 0; i < MemorySectionMap.INITIAL_CAPACITY * 5; i++) {
             allSections.add(new Section(i, 1));
-            map.addSection(i, 1, NO_TRACKING);
+            map.addSection(i, 1, ALWAYS_INITIALIZED);
         }
 
         // TODO: Maybe make the seed of Random a parameter of this test method and then convert to `@ParameterizedTest`;
@@ -157,8 +157,8 @@ class MemorySectionMapTest {
 
     @Test
     void removeSection_Tracking() {
-        map.addSection(1, 4, true);
-        map.addSection(6, 4, true);
+        map.addSection(1, 4, false);
+        map.addSection(6, 4, false);
         assertEquals(List.of(), map.getAllInitializedSections());
 
         map.performAccess(2, 2, false);
@@ -183,8 +183,8 @@ class MemorySectionMapTest {
         assertEquals(List.of(), map.getAllInitializedSections());
 
 
-        map.addSection(1, 2, true);
-        map.addSection(3, 2, true);
+        map.addSection(1, 2, false);
+        map.addSection(3, 2, false);
         map.performAccess(1, 2, false);
         map.performAccess(3, 2, false);
         // Current implementation merges adjacent initialized sections
@@ -209,7 +209,7 @@ class MemorySectionMapTest {
 
     @Test
     void moveSection() {
-        map.addSection(1, 6, false);
+        map.addSection(1, 6, ALWAYS_INITIALIZED);
 
         // Same address, same size
         map.moveSection(1, 1, 6);
@@ -241,7 +241,7 @@ class MemorySectionMapTest {
 
     @Test
     void moveSection_Error() {
-        map.addSection(1, 4, false);
+        map.addSection(1, 4, ALWAYS_INITIALIZED);
 
         assertThrows(() -> map.moveSection(0, 10, 2));
         assertThrows(() -> map.moveSection(5, 10, 1));
@@ -255,7 +255,7 @@ class MemorySectionMapTest {
 
     @Test
     void moveSection_Tracking() {
-        map.addSection(1, 4, true);
+        map.addSection(1, 4, false);
         assertEquals(List.of(), map.getAllInitializedSections());
 
         map.moveSection(1, 6, 4);
@@ -303,8 +303,8 @@ class MemorySectionMapTest {
 
     @Test
     void performAccess() {
-        map.addSection(0, 1, NO_TRACKING);
-        map.addSection(5, 3, NO_TRACKING);
+        map.addSection(0, 1, ALWAYS_INITIALIZED);
+        map.addSection(5, 3, ALWAYS_INITIALIZED);
 
         map.performAccess(0, 1, IS_READ);
         map.performAccess(5, 1, IS_READ);
@@ -318,9 +318,9 @@ class MemorySectionMapTest {
         assertThrows(() -> map.performAccess(0, -1, IS_READ));
         assertThrows(() -> map.performAccess(0, 0, IS_READ));
 
-        map.addSection(1, 5, NO_TRACKING);
-        map.addSection(7, 1, NO_TRACKING);
-        map.addSection(8, 1, NO_TRACKING);
+        map.addSection(1, 5, ALWAYS_INITIALIZED);
+        map.addSection(7, 1, ALWAYS_INITIALIZED);
+        map.addSection(8, 1, ALWAYS_INITIALIZED);
 
         assertThrows(() -> map.performAccess(0, 2, IS_READ));
         assertThrows(() -> map.performAccess(2, -1, IS_READ));
@@ -341,7 +341,7 @@ class MemorySectionMapTest {
 
     @Test
     void performAccess_Tracking() {
-        map.addSection(1, 4, true);
+        map.addSection(1, 4, false);
 
         // Reading uninitialized
         assertThrows(() -> map.performAccess(1, 4, true));
@@ -366,7 +366,7 @@ class MemorySectionMapTest {
 
         // Prepare split initialized with uninitialized gap
         map.removeSection(1);
-        map.addSection(1, 4, true);
+        map.addSection(1, 4, false);
         map.performAccess(1, 1, false);
         map.performAccess(3, 1, false);
         assertEquals(
@@ -382,8 +382,8 @@ class MemorySectionMapTest {
 
     @Test
     void performCopyAccess() {
-        map.addSection(1, 3, NO_TRACKING);
-        map.addSection(5, 3, NO_TRACKING);
+        map.addSection(1, 3, ALWAYS_INITIALIZED);
+        map.addSection(5, 3, ALWAYS_INITIALIZED);
 
         map.performCopyAccess(1, 5, 3);
         map.performCopyAccess(2, 6, 2);
@@ -402,8 +402,8 @@ class MemorySectionMapTest {
 
     @Test
     void performCopyAccess_Error() {
-        map.addSection(1, 3, NO_TRACKING);
-        map.addSection(5, 2, NO_TRACKING);
+        map.addSection(1, 3, ALWAYS_INITIALIZED);
+        map.addSection(5, 2, ALWAYS_INITIALIZED);
 
         assertThrows(() -> map.performCopyAccess(0, 5, 3));
         assertThrows(() -> map.performCopyAccess(1, 5, 3));
@@ -414,8 +414,8 @@ class MemorySectionMapTest {
 
     @Test
     void performCopyAccess_TrackingTracking() {
-        map.addSection(1, 4, true);
-        map.addSection(6, 4, true);
+        map.addSection(1, 4, false);
+        map.addSection(6, 4, false);
 
         map.performAccess(2, 2, false);
         map.performCopyAccess(1, 7, 3);
@@ -430,7 +430,7 @@ class MemorySectionMapTest {
 
         map.removeSection(1);
         map.removeSection(6);
-        map.addSection(1, 4, true);
+        map.addSection(1, 4, false);
         map.performAccess(1, 1, false);
         map.performAccess(3, 1, false);
         assertEquals(
@@ -463,8 +463,8 @@ class MemorySectionMapTest {
 
     @Test
     void performCopyAccess_TrackingNonTracking() {
-        map.addSection(1, 4, true);
-        map.addSection(6, 4, false);
+        map.addSection(1, 4, false);
+        map.addSection(6, 4, true);
         assertEquals(List.of(), map.getAllInitializedSections());
 
         // Copying uninitialized to non-tracking should fail
@@ -486,8 +486,8 @@ class MemorySectionMapTest {
 
     @Test
     void performCopyAccess_NonTrackingTracking() {
-        map.addSection(1, 4, false);
-        map.addSection(6, 4, true);
+        map.addSection(1, 4, true);
+        map.addSection(6, 4, false);
         assertEquals(List.of(), map.getAllInitializedSections());
 
         // Copying non-tracking to uninitialized should mark destination as initialized
@@ -505,7 +505,7 @@ class MemorySectionMapTest {
         assertThrows(() -> map.checkIsInSection(1, true));
         assertThrows(() -> map.checkIsInSection(1, false));
 
-        map.addSection(1, 10, true);
+        map.addSection(1, 10, false);
         map.checkIsInSection(1, false);
         map.checkIsInSection(5, false);
         map.checkIsInSection(10, false);
@@ -520,7 +520,7 @@ class MemorySectionMapTest {
     void hasSectionAt() {
         assertFalse(map.hasSectionAt(1));
 
-        map.addSection(1, 10, true);
+        map.addSection(1, 10, false);
         assertTrue(map.hasSectionAt(1));
 
         assertFalse(map.hasSectionAt(0));
@@ -531,7 +531,7 @@ class MemorySectionMapTest {
     @Test
     void disableUninitializedMemoryTracking() {
         map.enableUninitializedMemoryTracking(false);
-        map.addSection(1, 10, true);
+        map.addSection(1, 10, false);
 
         // Should not throw an exception, even though this reads uninitialized memory
         map.performAccess(1, 10, true);

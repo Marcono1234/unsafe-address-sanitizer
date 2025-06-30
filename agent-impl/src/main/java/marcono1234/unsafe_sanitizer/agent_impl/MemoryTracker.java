@@ -55,10 +55,10 @@ class MemoryTracker {
      *      address where the memory was allocated
      * @param bytesCount
      *      size of the allocation
-     * @param trackUninitialized
-     *      whether for this memory region it should be tracked if the memory is uninitialized
-     *      (if {@linkplain #enableUninitializedMemoryTracking(boolean) enabled}); if {@code false} this memory section
-     *      is always considered (and required) to be initialized
+     * @param alwaysInitialized
+     *      whether the allocated memory section is assumed (and required) to be always initialized; if {@code false}
+     *      the individual initialized parts (if any) of this section are tracked;
+     *      has no effect if uninitialized memory tracking is {@linkplain #enableUninitializedMemoryTracking(boolean) disabled}
      * @param isDirectBuffer
      *      whether the memory has been allocated by {@link java.nio.ByteBuffer#allocateDirect(int)}
      *
@@ -67,7 +67,7 @@ class MemoryTracker {
      *      {@code false} if the allocation was considered invalid (but the sanitizer is not
      *      {@linkplain UnsafeSanitizerImpl#setErrorAction(AgentErrorAction) configured} to throw on bad memory access)
      */
-    public boolean onAllocatedMemory(long address, long bytesCount, boolean trackUninitialized, boolean isDirectBuffer) {
+    public boolean onAllocatedMemory(long address, long bytesCount, boolean alwaysInitialized, boolean isDirectBuffer) {
         // Unsafe methods `allocateMemory` and `reallocateMemory` return address 0 if the requested size is 0
         // (note that for `allocateMemory` the documentation was incorrect regarding this, see https://bugs.openjdk.org/browse/JDK-8325149)
         if (address == 0 && bytesCount == 0) {
@@ -86,7 +86,7 @@ class MemoryTracker {
         var lock = this.lock.writeLock();
         lock.lock();
         try {
-            sectionsMap.addSection(address, bytesCount, trackUninitialized);
+            sectionsMap.addSection(address, bytesCount, alwaysInitialized);
 
             if (isDirectBuffer) {
                 if (!directBufferAddresses.add(address)) {

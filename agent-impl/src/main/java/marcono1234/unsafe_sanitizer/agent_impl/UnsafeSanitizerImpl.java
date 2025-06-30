@@ -268,20 +268,20 @@ public class UnsafeSanitizerImpl {
         return MemoryTracker.verifyValidBytesCount(bytesCount);
     }
 
-    private static boolean onAllocatedMemory(long address, long bytesCount, boolean trackUninitialized, boolean isDirectBuffer) {
+    private static boolean onAllocatedMemory(long address, long bytesCount, boolean alwaysInitialized, boolean isDirectBuffer) {
         var memoryTracker = getMemoryTracker();
         return memoryTracker == null
-            || memoryTracker.onAllocatedMemory(address, bytesCount, trackUninitialized, isDirectBuffer);
+            || memoryTracker.onAllocatedMemory(address, bytesCount, alwaysInitialized, isDirectBuffer);
     }
 
-    public static boolean onAllocatedMemory(long address, long bytesCount, boolean trackUninitialized) {
-        return onAllocatedMemory(address, bytesCount, trackUninitialized, false);
+    public static boolean onAllocatedMemory(long address, long bytesCount, boolean alwaysInitialized) {
+        return onAllocatedMemory(address, bytesCount, alwaysInitialized, false);
     }
 
     public static boolean onAllocatedDirectBuffer(long address, long bytesCount) {
-        // `ByteBuffer.allocateDirect` creates fully initialized memory; no need to track it
-        boolean trackUninitialized = false;
-        return onAllocatedMemory(address, bytesCount, trackUninitialized, true);
+        // `ByteBuffer.allocateDirect` memory is assumed to be always fully initialized
+        boolean alwaysInitialized = true;
+        return onAllocatedMemory(address, bytesCount, alwaysInitialized, true);
     }
 
     public static boolean onReallocatedMemory(long oldAddress, long newAddress, long newBytesCount) {

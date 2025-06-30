@@ -45,7 +45,7 @@ interface UnsafeInterceptors {
 
         @OnMethodExit
         public static void exit(@Argument(0) long bytesCount, @Enter boolean wasExecuted, @Return(readOnly = false) long address) {
-            if (!(wasExecuted && UnsafeSanitizerImpl.onAllocatedMemory(address, bytesCount, true))) {
+            if (!(wasExecuted && UnsafeSanitizerImpl.onAllocatedMemory(address, bytesCount, false))) {
                 // Set custom return value as result
                 //noinspection UnusedAssignment
                 address = INVALID_ADDRESS;
@@ -69,7 +69,7 @@ interface UnsafeInterceptors {
             if (wasExecuted) {
                 // `oldAddress == 0` acts like allocate instead
                 if (oldAddress == 0) {
-                    wasExecuted = UnsafeSanitizerImpl.onAllocatedMemory(newAddress, bytesCount, true);
+                    wasExecuted = UnsafeSanitizerImpl.onAllocatedMemory(newAddress, bytesCount, false);
                 } else {
                     wasExecuted = UnsafeSanitizerImpl.onReallocatedMemory(oldAddress, newAddress, bytesCount);
                 }

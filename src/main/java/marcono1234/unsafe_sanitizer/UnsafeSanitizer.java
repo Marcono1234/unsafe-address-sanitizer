@@ -696,10 +696,13 @@ public class UnsafeSanitizer {
             throw new IllegalArgumentException("Invalid bytes count: " + address);
         }
 
-        // Assume that memory is fully initialized
-        boolean trackUninitialized = false;
         // TODO: Maybe handle it better when ErrorAction is not THROW (and this only returns false instead of throwing)?
-        if (!UnsafeSanitizerImpl.onAllocatedMemory(address, bytesCount, trackUninitialized)) {
+        if (UnsafeSanitizerImpl.onAllocatedMemory(address, bytesCount, false)) {
+            // Perform a dummy write access to mark memory section as fully initialized, because sanitizer might not
+            // be aware of all previous writes to this section
+            // TODO: Maybe add a parameter to `registerAllocatedMemory` to let the user decide if this should be performed
+            UnsafeSanitizerImpl.onWriteAccess(null, address, bytesCount);
+        } else {
             throw new IllegalStateException("Failed to register allocated memory");
         }
     }

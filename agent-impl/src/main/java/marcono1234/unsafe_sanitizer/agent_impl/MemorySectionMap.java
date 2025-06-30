@@ -31,8 +31,14 @@ class MemorySectionMap {
      */
     private long[] addresses;
     private long[] sizes;
-    /** Whether for this memory region it is tracked if memory is uninitialized. */
-    private boolean[] isTrackingUninitialized;
+
+    /**
+     * Whether the memory sections at these indices are assumed and required to be always initialized.
+     * If {@code false} the {@link #uninitializedMemoryTracker} is used to track which parts of the section
+     * (if any) are initialized.
+     */
+    private boolean[] isAlwaysInitialized;
+
     private int count;
 
     // TODO: Maybe also track `StackWalker.StackFrame` of method which performed allocation (to make troubleshooting
@@ -44,7 +50,7 @@ class MemorySectionMap {
     public MemorySectionMap() {
         addresses = new long[INITIAL_CAPACITY];
         sizes = new long[INITIAL_CAPACITY];
-        isTrackingUninitialized = new boolean[INITIAL_CAPACITY];
+        isAlwaysInitialized = new boolean[INITIAL_CAPACITY];
         count = 0;
 
         uninitializedMemoryTracker = new UninitializedMemoryTracker();
@@ -72,7 +78,7 @@ class MemorySectionMap {
         }
     }
 
-    public void addSection(long address, long size, boolean trackUninitialized) throws IllegalArgumentException {
+    public void addSection(long address, long size, boolean alwaysInitialized) throws IllegalArgumentException {
         checkAddress(address);
         checkAddSize(size);
 
@@ -104,7 +110,7 @@ class MemorySectionMap {
             int newCapacity = count * 2;
             addresses = Arrays.copyOf(addresses, newCapacity);
             sizes = Arrays.copyOf(sizes, newCapacity);
-            isTrackingUninitialized = Arrays.copyOf(isTrackingUninitialized, newCapacity);
+            isAlwaysInitialized = Arrays.copyOf(isAlwaysInitialized, newCapacity);
         }
 
         // Can avoid shifting if entry is added at the end (`index == count`)
@@ -113,7 +119,7 @@ class MemorySectionMap {
             // Shift subsequent entries
             System.arraycopy(addresses, index, addresses, index + 1, copyCount);
             System.arraycopy(sizes, index, sizes, index + 1, copyCount);
-            System.arraycopy(isTrackingUninitialized, index, isTrackingUninitialized, index + 1, copyCount);
+            System.arraycopy(isAlwaysInitialized, index, isAlwaysInitialized, index + 1, copyCount);
         }
 
         // Insert new entry
@@ -121,7 +127,7 @@ class MemorySectionMap {
         sizes[index] = size;
         // Note: Instead of having a separate array for this, could also consider calling `uninitializedMemoryTracker.setInitialized`,
         // but that might decrease performance of `uninitializedMemoryTracker`
-        isTrackingUninitialized[index] = trackUninitialized;
+        isAlwaysInitialized[index] = alwaysInitialized;
 
         count++;
     }
@@ -145,7 +151,7 @@ class MemorySectionMap {
             return false;
         }
 
-        if (uninitializedMemoryTracker != null && removeResult.wasTrackingUninitialized) {
+        if (uninitializedMemoryTracker != null && !removeResult.wasAlwaysInitialized) {
             // Treat memory as uninitialized; even if subsequent allocation happens to obtain same memory region,
             // it should not make any assumptions about the previous content
             uninitializedMemoryTracker.clearInitialized(address, removeResult.size);
@@ -174,14 +180,14 @@ class MemorySectionMap {
         if (removeResult == null) {
             throw new IllegalArgumentException("No section at address " + srcAddress);
         }
-        boolean trackUninitialized = removeResult.wasTrackingUninitialized;
-        addSection(destAddress, destSize, trackUninitialized);
-        if (uninitializedMemoryTracker != null && trackUninitialized) {
+        boolean alwaysInitialized = removeResult.wasAlwaysInitialized;
+        addSection(destAddress, destSize, alwaysInitialized);
+        if (uninitializedMemoryTracker != null && !alwaysInitialized) {
             uninitializedMemoryTracker.moveInitialized(srcAddress, removeResult.size, destAddress, destSize);
         }
     }
 
-    private record RemoveResult(long size, boolean wasTrackingUninitialized) {}
+    private record RemoveResult(long size, boolean wasAlwaysInitialized) {}
 
     @Nullable
     private RemoveResult tryRemoveSectionImpl(long address) throws IllegalArgumentException {
@@ -192,7 +198,7 @@ class MemorySectionMap {
             return null;
         }
         long size = sizes[index];
-        boolean wasTrackingUninitialized = isTrackingUninitialized[index];
+        boolean wasAlwaysInitialized = isAlwaysInitialized[index];
 
         // Can avoid shifting if entry is the last (or only) one (`index == count - 1`);
         // will be implicitly removed by decrementing `count`
@@ -201,7 +207,7 @@ class MemorySectionMap {
             // Remove entry by shifting subsequent entries
             System.arraycopy(addresses, index + 1, addresses, index, copyCount);
             System.arraycopy(sizes, index + 1, sizes, index, copyCount);
-            System.arraycopy(isTrackingUninitialized, index + 1, isTrackingUninitialized, index, copyCount);
+            System.arraycopy(isAlwaysInitialized, index + 1, isAlwaysInitialized, index, copyCount);
         }
         count--;
 
@@ -210,10 +216,10 @@ class MemorySectionMap {
         if (count * 4 < addresses.length && newCapacity >= INITIAL_CAPACITY) {
             addresses = Arrays.copyOf(addresses, newCapacity);
             sizes = Arrays.copyOf(sizes, newCapacity);
-            isTrackingUninitialized = Arrays.copyOf(isTrackingUninitialized, newCapacity);
+            isAlwaysInitialized = Arrays.copyOf(isAlwaysInitialized, newCapacity);
         }
 
-        return new RemoveResult(size, wasTrackingUninitialized);
+        return new RemoveResult(size, wasAlwaysInitialized);
     }
 
     public void performAccess(long address, long size, boolean isRead) throws IllegalArgumentException {
@@ -225,13 +231,11 @@ class MemorySectionMap {
 
         if (uninitializedMemoryTracker != null) {
             if (isRead) {
-                if (isTrackingUninitialized[sectionIndex]) {
-                    if (!uninitializedMemoryTracker.isInitialized(address, size)) {
-                        throw new IllegalArgumentException("Trying to read uninitialized data at address " + address + ", size " + size);
-                    }
+                if (!isAlwaysInitialized[sectionIndex] && !uninitializedMemoryTracker.isInitialized(address, size)) {
+                    throw new IllegalArgumentException("Trying to read uninitialized data at address " + address + ", size " + size);
                 }
             } else {
-                if (isTrackingUninitialized[sectionIndex]) {
+                if (!isAlwaysInitialized[sectionIndex]) {
                     uninitializedMemoryTracker.setInitialized(address, size);
                 }
             }
@@ -248,18 +252,17 @@ class MemorySectionMap {
         }
 
         if (uninitializedMemoryTracker != null) {
-            if (isTrackingUninitialized[destSectionIndex]) {
-                if (isTrackingUninitialized[srcSectionIndex]) {
-                    uninitializedMemoryTracker.copyInitialized(srcAddress, destAddress, size);
-                } else {
-                    // Otherwise assume that source was fully initialized
-                    uninitializedMemoryTracker.setInitialized(destAddress, size);
-                }
-            }
-            // If destination is assumed to be fully initialized, then require that source is fully initialized as well
-            else if (isTrackingUninitialized[srcSectionIndex]) {
-                if (!uninitializedMemoryTracker.isInitialized(srcAddress, size)) {
+            if (isAlwaysInitialized[destSectionIndex]) {
+                // If destination is assumed to be always initialized, then require that source is fully initialized
+                if (!isAlwaysInitialized[srcSectionIndex] && !uninitializedMemoryTracker.isInitialized(srcAddress, size)) {
                     throw new IllegalArgumentException("Trying to copy uninitialized data from address " + srcAddress + ", size " + size);
+                }
+            } else {
+                if (isAlwaysInitialized[srcSectionIndex]) {
+                    // src was always initialized, so dest is now fully initialized
+                    uninitializedMemoryTracker.setInitialized(destAddress, size);
+                } else {
+                    uninitializedMemoryTracker.copyInitialized(srcAddress, destAddress, size);
                 }
             }
         }
@@ -316,6 +319,9 @@ class MemorySectionMap {
         return sections;
     }
 
+    /**
+     * Does not include sections which are assumed to be {@linkplain #isAlwaysInitialized always initialized}.
+     */
     @VisibleForTesting
     List<UninitializedMemoryTracker.Section> getAllInitializedSections() {
         if (uninitializedMemoryTracker == null) {
