@@ -27,6 +27,7 @@ class AgentMainTest {
             + ",global-native-memory-sanitizer=false"
             + ",uninitialized-memory-tracking=false"
             + ",error-action=print-skip"
+            + ",include-sanitizer-stack-frames=false"
             + ",call-debug-logging=true";
         AgentSettings parsedSettings = AgentMain.parseAgentSettings(agentArgs);
         AgentSettings defaultSettings = AgentSettings.defaultSettings();

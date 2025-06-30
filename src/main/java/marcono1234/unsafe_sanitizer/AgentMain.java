@@ -208,6 +208,7 @@ class AgentMain {
         entry("global-native-memory-sanitizer", new AgentOption<>(BOOLEAN_PARSER, true, AgentSettings::withGlobalNativeMemorySanitizer)),
         entry("uninitialized-memory-tracking", new AgentOption<>(BOOLEAN_PARSER, true, AgentSettings::withUninitializedMemoryTracking)),
         entry("error-action", new AgentOption<>(ERROR_ACTION_PARSER, ErrorAction.THROW, AgentSettings::withErrorAction)),
+        entry("include-sanitizer-stack-frames", new AgentOption<>(BOOLEAN_PARSER, true, AgentSettings::withIncludeSanitizerErrorStackFrames)),
         entry("call-debug-logging", new AgentOption<>(BOOLEAN_PARSER, false, AgentSettings::withCallDebugLogging))
     );
     static {

@@ -87,6 +87,14 @@ public class UnsafeSanitizer {
      * @param errorAction
      *      Defines how to handle bad memory access; can be changed at runtime with
      *      {@link ModifySettings#setErrorAction(ErrorAction)}.
+     * @param includeSanitizerErrorStackFrames
+     *      Whether errors reported by the sanitizer should include sanitizer classes in the stack trace.
+     *
+     *      <p>Disabling this can make the error stack traces easier to read, but on the other hand can make
+     *      troubleshooting more difficult in case it is not clear why the sanitizer reported an error or when trying
+     *      to set a breakpoint within the sanitizer code.
+     *
+     *      <p>Can be changed at runtime with {@link ModifySettings#setIncludeSanitizerErrorStackFrames(boolean)}
      * @param callDebugLogging
      *      Whether to log debug information about called {@code Unsafe} methods; can be changed at runtime
      *      with {@link ModifySettings#setCallDebugLogging(boolean)}.
@@ -97,6 +105,7 @@ public class UnsafeSanitizer {
         boolean globalNativeMemorySanitizer,
         boolean uninitializedMemoryTracking,
         ErrorAction errorAction,
+        boolean includeSanitizerErrorStackFrames,
         boolean callDebugLogging
     ) {
         public AgentSettings {
@@ -111,6 +120,7 @@ public class UnsafeSanitizer {
          *     <li>{@link #globalNativeMemorySanitizer()}: true</li>
          *     <li>{@link #uninitializedMemoryTracking()}: true</li>
          *     <li>{@link #errorAction()}: {@link ErrorAction#THROW}</li>
+         *     <li>{@link #includeSanitizerErrorStackFrames()}: true</li>
          *     <li>{@link #callDebugLogging()}: false</li>
          * </ul>
          *
@@ -131,6 +141,7 @@ public class UnsafeSanitizer {
                 true,
                 true,
                 ErrorAction.THROW,
+                true,
                 false
             );
         }
@@ -145,6 +156,7 @@ public class UnsafeSanitizer {
                 globalNativeMemorySanitizer,
                 uninitializedMemoryTracking,
                 errorAction,
+                includeSanitizerErrorStackFrames,
                 callDebugLogging
             );
         }
@@ -159,6 +171,7 @@ public class UnsafeSanitizer {
                 globalNativeMemorySanitizer,
                 uninitializedMemoryTracking,
                 errorAction,
+                includeSanitizerErrorStackFrames,
                 callDebugLogging
             );
         }
@@ -173,6 +186,7 @@ public class UnsafeSanitizer {
                 globalNativeMemorySanitizer,
                 uninitializedMemoryTracking,
                 errorAction,
+                includeSanitizerErrorStackFrames,
                 callDebugLogging
             );
         }
@@ -187,6 +201,7 @@ public class UnsafeSanitizer {
                 globalNativeMemorySanitizer,
                 uninitializedMemoryTracking,
                 errorAction,
+                includeSanitizerErrorStackFrames,
                 callDebugLogging
             );
         }
@@ -201,6 +216,22 @@ public class UnsafeSanitizer {
                 globalNativeMemorySanitizer,
                 uninitializedMemoryTracking,
                 errorAction,
+                includeSanitizerErrorStackFrames,
+                callDebugLogging
+            );
+        }
+
+        /**
+         * Creates new agent settings with modified {@link #includeSanitizerErrorStackFrames()} value.
+         */
+        public AgentSettings withIncludeSanitizerErrorStackFrames(boolean includeStackFrames) {
+            return new AgentSettings(
+                instrumentationLogging,
+                addressAlignmentChecking,
+                globalNativeMemorySanitizer,
+                uninitializedMemoryTracking,
+                errorAction,
+                includeStackFrames,
                 callDebugLogging
             );
         }
@@ -215,6 +246,7 @@ public class UnsafeSanitizer {
                 globalNativeMemorySanitizer,
                 uninitializedMemoryTracking,
                 errorAction,
+                includeSanitizerErrorStackFrames,
                 callDebugLogging
             );
         }
@@ -292,6 +324,7 @@ public class UnsafeSanitizer {
             }
             UnsafeSanitizerImpl.enableUninitializedMemoryTracking(settings.uninitializedMemoryTracking);
             UnsafeSanitizerImpl.setErrorAction(settings.errorAction.getAgentErrorAction());
+            UnsafeSanitizerImpl.setIsIncludeSanitizerStackFrames(settings.includeSanitizerErrorStackFrames);
             UnsafeSanitizerImpl.setIsDebugLogging(settings.callDebugLogging);
 
             // Allow the agent to access the values of the internal `DirectByteBuffer$Deallocator` class
@@ -552,6 +585,16 @@ public class UnsafeSanitizer {
         public ModifySettings setErrorAction(ErrorAction errorAction) {
             Objects.requireNonNull(errorAction);
             UnsafeSanitizerImpl.setErrorAction(errorAction.getAgentErrorAction());
+            return this;
+        }
+
+        /**
+         * Sets whether errors reported by the sanitizer should include sanitizer classes in the stack trace.
+         *
+         * <p>This setting can already be specified when the agent is installed by using {@link AgentSettings#withIncludeSanitizerErrorStackFrames(boolean)}.
+         */
+        public ModifySettings setIncludeSanitizerErrorStackFrames(boolean includeStackFrames) {
+            UnsafeSanitizerImpl.setIsIncludeSanitizerStackFrames(includeStackFrames);
             return this;
         }
 
