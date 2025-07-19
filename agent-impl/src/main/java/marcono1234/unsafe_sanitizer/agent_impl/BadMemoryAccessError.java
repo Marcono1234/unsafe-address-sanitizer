@@ -14,7 +14,13 @@ public class BadMemoryAccessError extends Error {
         super(message, cause);
     }
 
-    private static void onError(BadMemoryAccessError error) {
+    /**
+     * Handles the error. The behavior depends on the current {@link UnsafeSanitizerImpl#getErrorAction()}.
+     *
+     * @return Whether the caller should perform the invalid memory access anyway; if {@code false} the caller
+     *      should skip the invalid access
+     */
+    private static boolean onError(BadMemoryAccessError error) {
         if (!UnsafeSanitizerImpl.isIncludeSanitizerStackFrames()) {
             String packageName = "marcono1234.unsafe_sanitizer.agent_impl.";
             // Don't directly use `BadMemoryAccessError.class.getPackageName()` as package name because that
@@ -37,15 +43,23 @@ public class BadMemoryAccessError extends Error {
 
         UnsafeSanitizerImpl.getLastErrorRefImpl().set(error);
 
+        var errorAction = UnsafeSanitizerImpl.getErrorAction();
+        PrintStream stream = System.err;
+        if (errorAction.printStackTrace) {
+            error.printStackTrace(stream);
+            // Flush output to make sure users can see it in the console, even if the JVM crashes soon afterwards
+            stream.flush();
+        }
+
         switch (UnsafeSanitizerImpl.getErrorAction()) {
-            case THROW -> throw error;
-            case PRINT, PRINT_SKIP -> {
-                PrintStream stream = System.err;
-                error.printStackTrace(stream);
-                // Flush output to make sure users can see it in the console, even if the JVM crashes soon afterwards
-                stream.flush();
+            case THROW, THROW_PRINT -> throw error;
+            case TERMINATE_JVM -> {
+                stream.println("### unsafe-address-sanitizer is terminating JVM ###");
+                System.exit(1);
             }
         }
+
+        return errorAction.executeOnError;
     }
 
     /**
@@ -54,8 +68,7 @@ public class BadMemoryAccessError extends Error {
      */
     static boolean reportError(String message) {
         var error = new BadMemoryAccessError(message);
-        onError(error);
-        return UnsafeSanitizerImpl.executeOnError();
+        return onError(error);
     }
 
     /**
@@ -66,8 +79,7 @@ public class BadMemoryAccessError extends Error {
         String message = exception.getMessage();
         if (UnsafeSanitizerImpl.isIncludeSanitizerStackFrames()) {
             var error = new BadMemoryAccessError(message, exception);
-            onError(error);
-            return UnsafeSanitizerImpl.executeOnError();
+            return onError(error);
         } else {
             return reportError(message);
         }

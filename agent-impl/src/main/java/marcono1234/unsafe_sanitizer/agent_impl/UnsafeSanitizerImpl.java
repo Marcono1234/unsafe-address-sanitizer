@@ -72,16 +72,6 @@ public class UnsafeSanitizerImpl {
         return memoryTracker;
     }
 
-    /**
-     * Whether the instrumented method should be executed in case of an error, or not and
-     * its execution should be skipped (e.g. to prevent a JVM crash).
-     *
-     * <p>See {@link AgentErrorAction#executeOnError}
-     */
-    static boolean executeOnError() {
-        return errorAction.executeOnError;
-    }
-
     public static void setErrorAction(AgentErrorAction errorAction) {
         UnsafeSanitizerImpl.errorAction = Objects.requireNonNull(errorAction);
     }
