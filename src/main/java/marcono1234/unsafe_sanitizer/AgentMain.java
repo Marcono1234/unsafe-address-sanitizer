@@ -190,6 +190,7 @@ class AgentMain {
 
     @SafeVarargs
     private static <K, V> Map<K, V> mapOf(Map.Entry<K, V>... entries) {
+        // Uses LinkedHashMap to preserve order (unlike `Map#ofEntries`)
         Map<K, V> map = new LinkedHashMap<>();
         for (var entry : entries) {
             K key = entry.getKey();
@@ -208,6 +209,7 @@ class AgentMain {
         entry("global-native-memory-sanitizer", new AgentOption<>(BOOLEAN_PARSER, true, AgentSettings::withGlobalNativeMemorySanitizer)),
         entry("uninitialized-memory-tracking", new AgentOption<>(BOOLEAN_PARSER, true, AgentSettings::withUninitializedMemoryTracking)),
         entry("error-action", new AgentOption<>(ERROR_ACTION_PARSER, ErrorAction.THROW, AgentSettings::withErrorAction)),
+        entry("print-errors-to-system-console", new AgentOption<>(BOOLEAN_PARSER, false, AgentSettings::withPrintErrorsToSystemConsole)),
         entry("include-sanitizer-stack-frames", new AgentOption<>(BOOLEAN_PARSER, true, AgentSettings::withIncludeSanitizerErrorStackFrames)),
         entry("call-debug-logging", new AgentOption<>(BOOLEAN_PARSER, false, AgentSettings::withCallDebugLogging))
     );

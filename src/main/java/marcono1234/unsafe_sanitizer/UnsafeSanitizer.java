@@ -11,6 +11,7 @@ import sun.misc.Unsafe;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.io.UncheckedIOException;
 import java.lang.instrument.Instrumentation;
 import java.nio.ByteBuffer;
@@ -87,6 +88,13 @@ public class UnsafeSanitizer {
      * @param errorAction
      *      Defines how to handle bad memory access; can be changed at runtime with
      *      {@link ModifySettings#setErrorAction(ErrorAction)}.
+     * @param printErrorsToSystemConsole
+     *      Whether to print bad memory access errors to {@link System#console()} (if available) instead of {@link System#err}.
+     *
+     *      <p>Using the system console has the advantage that the output will be visible, even if {@link System#setErr(PrintStream)}
+     *      has been used to replace {@code System.err} (and the new output stream possibly discards all output).
+     *      However, {@link System#console()} writes to the 'out' stream instead of the 'err' stream of the process.
+     *      If the console is not available ({@code console == null}) {@code System.err} is used as fallback.
      * @param includeSanitizerErrorStackFrames
      *      Whether errors reported by the sanitizer should include sanitizer classes in the stack trace.
      *
@@ -105,6 +113,7 @@ public class UnsafeSanitizer {
         boolean globalNativeMemorySanitizer,
         boolean uninitializedMemoryTracking,
         ErrorAction errorAction,
+        boolean printErrorsToSystemConsole,
         boolean includeSanitizerErrorStackFrames,
         boolean callDebugLogging
     ) {
@@ -120,6 +129,7 @@ public class UnsafeSanitizer {
          *     <li>{@link #globalNativeMemorySanitizer()}: true</li>
          *     <li>{@link #uninitializedMemoryTracking()}: true</li>
          *     <li>{@link #errorAction()}: {@link ErrorAction#THROW}</li>
+         *     <li>{@link #printErrorsToSystemConsole()}: false</li>
          *     <li>{@link #includeSanitizerErrorStackFrames()}: true</li>
          *     <li>{@link #callDebugLogging()}: false</li>
          * </ul>
@@ -141,6 +151,7 @@ public class UnsafeSanitizer {
                 true,
                 true,
                 ErrorAction.THROW,
+                false,
                 true,
                 false
             );
@@ -156,6 +167,7 @@ public class UnsafeSanitizer {
                 globalNativeMemorySanitizer,
                 uninitializedMemoryTracking,
                 errorAction,
+                printErrorsToSystemConsole,
                 includeSanitizerErrorStackFrames,
                 callDebugLogging
             );
@@ -171,6 +183,7 @@ public class UnsafeSanitizer {
                 globalNativeMemorySanitizer,
                 uninitializedMemoryTracking,
                 errorAction,
+                printErrorsToSystemConsole,
                 includeSanitizerErrorStackFrames,
                 callDebugLogging
             );
@@ -186,6 +199,7 @@ public class UnsafeSanitizer {
                 globalNativeMemorySanitizer,
                 uninitializedMemoryTracking,
                 errorAction,
+                printErrorsToSystemConsole,
                 includeSanitizerErrorStackFrames,
                 callDebugLogging
             );
@@ -201,6 +215,7 @@ public class UnsafeSanitizer {
                 globalNativeMemorySanitizer,
                 uninitializedMemoryTracking,
                 errorAction,
+                printErrorsToSystemConsole,
                 includeSanitizerErrorStackFrames,
                 callDebugLogging
             );
@@ -216,6 +231,23 @@ public class UnsafeSanitizer {
                 globalNativeMemorySanitizer,
                 uninitializedMemoryTracking,
                 errorAction,
+                printErrorsToSystemConsole,
+                includeSanitizerErrorStackFrames,
+                callDebugLogging
+            );
+        }
+
+        /**
+         * Creates new agent settings with modified {@link #printErrorsToSystemConsole()} value.
+         */
+        public AgentSettings withPrintErrorsToSystemConsole(boolean printErrorsToSystemConsole) {
+            return new AgentSettings(
+                instrumentationLogging,
+                addressAlignmentChecking,
+                globalNativeMemorySanitizer,
+                uninitializedMemoryTracking,
+                errorAction,
+                printErrorsToSystemConsole,
                 includeSanitizerErrorStackFrames,
                 callDebugLogging
             );
@@ -231,6 +263,7 @@ public class UnsafeSanitizer {
                 globalNativeMemorySanitizer,
                 uninitializedMemoryTracking,
                 errorAction,
+                printErrorsToSystemConsole,
                 includeStackFrames,
                 callDebugLogging
             );
@@ -246,6 +279,7 @@ public class UnsafeSanitizer {
                 globalNativeMemorySanitizer,
                 uninitializedMemoryTracking,
                 errorAction,
+                printErrorsToSystemConsole,
                 includeSanitizerErrorStackFrames,
                 callDebugLogging
             );
@@ -324,6 +358,7 @@ public class UnsafeSanitizer {
             }
             UnsafeSanitizerImpl.enableUninitializedMemoryTracking(settings.uninitializedMemoryTracking);
             UnsafeSanitizerImpl.setErrorAction(settings.errorAction.getAgentErrorAction());
+            UnsafeSanitizerImpl.setIsPrintErrorsToConsole(settings.printErrorsToSystemConsole);
             UnsafeSanitizerImpl.setIsIncludeSanitizerStackFrames(settings.includeSanitizerErrorStackFrames);
             UnsafeSanitizerImpl.setIsDebugLogging(settings.callDebugLogging);
 

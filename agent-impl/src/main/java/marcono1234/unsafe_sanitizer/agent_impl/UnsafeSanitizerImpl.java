@@ -35,6 +35,7 @@ public class UnsafeSanitizerImpl {
 
     private static final AtomicReference<BadMemoryAccessError> lastError = new AtomicReference<>(null);
     private static volatile AgentErrorAction errorAction = AgentErrorAction.THROW;
+    private static volatile boolean printErrorsToConsole = false;
     private static volatile boolean includeSanitizerStackFrames = true;
     private static volatile boolean isRequireInitializedOnCopy = false;
 
@@ -78,6 +79,14 @@ public class UnsafeSanitizerImpl {
 
     public static AgentErrorAction getErrorAction() {
         return errorAction;
+    }
+
+    public static void setIsPrintErrorsToConsole(boolean printErrorsToConsole) {
+        UnsafeSanitizerImpl.printErrorsToConsole = printErrorsToConsole;
+    }
+
+    public static boolean isPrintErrorsToConsole() {
+        return printErrorsToConsole;
     }
 
     public static void setIsIncludeSanitizerStackFrames(boolean includeStackFrames) {
