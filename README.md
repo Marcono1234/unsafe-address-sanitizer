@@ -29,6 +29,7 @@ are provided. The following is detected:
 - Arrays:
   - Out-of-bounds reads and writes
   - Bad aligned access (e.g. reading in the middle of a `long` element of a `long[]`)
+  - Unaligned primitive access (e.g. reading a `long` from a `byte[]`, but the offset is not aligned for `long`)
 - Fields:
   - No field at the specified offset
   - Out-of-bounds reads and writes
@@ -36,6 +37,10 @@ are provided. The following is detected:
   - Out-of-bounds reads and writes ([CWE-125](https://cwe.mitre.org/data/definitions/125.html), [CWE-787](https://cwe.mitre.org/data/definitions/787.html))
   - Reading uninitialized memory ([EXP33-C](https://wiki.sei.cmu.edu/confluence/display/c/EXP33-C.+Do+not+read+uninitialized+memory))
   - Double free ([CWE-415](https://cwe.mitre.org/data/definitions/415.html))
+  - Unaligned primitive access (e.g. reading a `long` but the address is not aligned for `long`)
+
+Some of these checks can be disabled, see the [Usage section](#usage). For example if an application intentionally
+only supports platforms where unaligned access is possible, the address alignment check can be disabled.
 
 > [!WARNING]\
 > This library is experimental and only intended for testing and fuzzing. Do not use it in production, especially do
