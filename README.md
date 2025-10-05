@@ -1,7 +1,7 @@
 # Java `Unsafe` address sanitizer
 
 Java Agent which validates memory access performed using `sun.misc.Unsafe`. `Unsafe` is a semi-public JDK class
-which allows among others allocating native memory and directly accessing memory without bounds checks. It is
+which allows among other things allocating native memory and directly accessing memory without bounds checks. It is
 sometimes used by libraries for better performance.
 
 The issue with `Unsafe` is that it does not detect out-of-bounds reads and writes and performs little to no argument
@@ -111,8 +111,13 @@ When installing the Unsafe Sanitizer at runtime using `UnsafeSanitizer.installAg
 Jazzer itself internally uses `sun.misc.Unsafe`. If the Unsafe Sanitizer agent is installed at runtime it might
 therefore be necessary to disable sanitization of native memory by using `AgentSettings.withGlobalNativeMemorySanitizer(false)`.\
 If the Unsafe Sanitizer agent has been installed using `-javaagent` this might not be a problem. However, the
-sanitizer might nonetheless decrease the Jazzer performance. So unless needed, it might be useful to disable native
+sanitizer might nonetheless decrease the performance of Jazzer. So unless needed, it might be useful to disable native
 memory sanitization.
+
+Since [Jazzer version v0.25.0](https://github.com/CodeIntelligenceTesting/jazzer/releases/tag/v0.25.0) a built-in
+`Unsafe` sanitizer is included in Jazzer. At the moment it only performs a limited subset of the sanitization
+checks of unsafe-address-sanitizer (currently only array access checks). But depending on your use case, that might
+already suffice and avoids having to additionally set up unsafe-address-sanitizer. 
 
 ## Building
 
