@@ -1,7 +1,7 @@
 # Java `Unsafe` address sanitizer
 
 Java Agent which validates memory access performed using `sun.misc.Unsafe`. `Unsafe` is a semi-public JDK class
-which allows among others allocating native memory and directly accessing memory without bounds checks. It is
+which allows among other things allocating native memory and directly accessing memory without bounds checks. It is
 sometimes used by libraries for better performance.
 
 The issue with `Unsafe` is that it does not detect out-of-bounds reads and writes and performs little to no argument
