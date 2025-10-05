@@ -114,6 +114,11 @@ If the Unsafe Sanitizer agent has been installed using `-javaagent` this might n
 sanitizer might nonetheless decrease the Jazzer performance. So unless needed, it might be useful to disable native
 memory sanitization.
 
+Since [Jazzer version v0.25.0](https://github.com/CodeIntelligenceTesting/jazzer/releases/tag/v0.25.0) a built-in
+`Unsafe` sanitizer is included in Jazzer. At the moment it only performs a limited subset of the sanitization
+checks of unsafe-address-sanitizer (currently only array access checks). But depending on your use case, that might
+already suffice and avoids having to additionally set up unsafe-address-sanitizer. 
+
 ## Building
 
 This project uses Gradle for building. JDK 17 is recommended, but Gradle toolchains are used, so any newer JDK version
