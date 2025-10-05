@@ -7,6 +7,7 @@
 package com.example;
 
 import com.code_intelligence.jazzer.api.FuzzedDataProvider;
+import com.code_intelligence.jazzer.api.FuzzerSecurityIssueCritical;
 import com.code_intelligence.jazzer.junit.FuzzTest;
 import org.assertj.core.api.Condition;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
@@ -19,8 +20,7 @@ import sun.misc.Unsafe;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.platform.engine.discovery.DiscoverySelectors.selectClass;
 import static org.junit.platform.testkit.engine.EventConditions.*;
-import static org.junit.platform.testkit.engine.TestExecutionResultConditions.cause;
-import static org.junit.platform.testkit.engine.TestExecutionResultConditions.message;
+import static org.junit.platform.testkit.engine.TestExecutionResultConditions.*;
 
 /**
  * Runs Jazzer tests in 'regression mode' where the previously generated inputs from the
@@ -65,6 +65,7 @@ class JazzerRegressionTest {
             testArray(dataProvider, false);
         }
 
+        // Note: Out-of-bounds array access is detected by Jazzer's built-in Unsafe sanitizer
         @Order(2)
         @FuzzTest
         void array_error(FuzzedDataProvider dataProvider) {
@@ -125,7 +126,8 @@ class JazzerRegressionTest {
 
                 event(test("array_error"), finishedSuccessfully()), // for '<empty input>' fuzz data
                 event(test("array_error"), finishedWithFailure(
-                    isFuzzFindingException(), cause(isSanitizerError(), message(m -> m.startsWith("Bad array access at "))))),
+                    // This exception is thrown by Jazzer's built-in Unsafe sanitizer (the exception message is kind of an implementation detail)
+                    isFuzzFindingException(), cause(instanceOf(FuzzerSecurityIssueCritical.class), message(m -> m.contains(" exceeds end offset "))))),
 
                 event(test("nativeMemory_success"), finishedSuccessfully()), // for '<empty input>' fuzz data
                 event(test("nativeMemory_success"), finishedSuccessfully()),
