@@ -111,7 +111,7 @@ When installing the Unsafe Sanitizer at runtime using `UnsafeSanitizer.installAg
 Jazzer itself internally uses `sun.misc.Unsafe`. If the Unsafe Sanitizer agent is installed at runtime it might
 therefore be necessary to disable sanitization of native memory by using `AgentSettings.withGlobalNativeMemorySanitizer(false)`.\
 If the Unsafe Sanitizer agent has been installed using `-javaagent` this might not be a problem. However, the
-sanitizer might nonetheless decrease the Jazzer performance. So unless needed, it might be useful to disable native
+sanitizer might nonetheless decrease the performance of Jazzer. So unless needed, it might be useful to disable native
 memory sanitization.
 
 Since [Jazzer version v0.25.0](https://github.com/CodeIntelligenceTesting/jazzer/releases/tag/v0.25.0) a built-in
