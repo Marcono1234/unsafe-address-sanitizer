@@ -6,7 +6,6 @@ plugins {
 val agentJar: Configuration by configurations.creating {
     // Prevent projects depending on this one from seeing and using this configuration
     isCanBeConsumed = false
-    isVisible = false
     isTransitive = false
 }
 
@@ -39,20 +38,22 @@ val copyAgentImplJar = tasks.register<Copy>("copyAgentImplJar") {
 sourceSets.main.get().output.dir(mutableMapOf<String, Any>("builtBy" to copyAgentImplJar), agentJarDir)
 
 
-// TODO: Maybe configure this using test suites instead, for consistency
-val testJdk21 = tasks.register<Test>("testJdk21") {
-    javaLauncher.set(javaToolchains.launcherFor {
-        languageVersion.set(JavaLanguageVersion.of(21))
-    })
-}
-tasks.check {
-    dependsOn(testJdk21)
-}
-
-
 @Suppress("UnstableApiUsage") // for Test Suites
 testing {
     suites {
+        named<JvmTestSuite>("test") {
+            targets {
+                // Register additional test
+                register("testJdk21") {
+                    testTask.configure {
+                        javaLauncher.set(javaToolchains.launcherFor {
+                            languageVersion.set(JavaLanguageVersion.of(21))
+                        })
+                    }
+                }
+            }
+        }
+
         fun Test.configureSanitizerAgentForJvmStartup(agentArgs: String? = null) {
             // Requires JAR with dependencies
             dependsOn(tasks.shadowJar)
