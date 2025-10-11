@@ -16,4 +16,4 @@ junit-testkit = { module = "org.junit.platform:junit-platform-testkit" }
 jazzer-junit = { module = "com.code-intelligence:jazzer-junit", version = "0.25.1" }
 
 [plugins]
-shadow = { id = "com.gradleup.shadow", version = "8.3.9" }
+shadow = { id = "com.gradleup.shadow", version = "9.2.2" }
