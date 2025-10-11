@@ -31,8 +31,7 @@ dependencies {
 val agentJarDir = layout.buildDirectory.dir("generated/agent-impl-jar").get().asFile
 val copyAgentImplJar = tasks.register<Copy>("copyAgentImplJar") {
     from(agentJar) {
-        // TODO: Trailing `_` is as workaround for https://github.com/GradleUp/shadow/issues/111 for standalone agent JAR
-        rename(".*", "agent-impl.jar_")
+        rename(".*", "agent-impl.jar")
     }
     // Add package name prefix
     into(agentJarDir.resolve("marcono1234/unsafe_sanitizer"))
@@ -219,7 +218,6 @@ testing {
 
 // Create JAR with dependencies variant to allow standalone agent usage
 tasks.shadowJar {
-    isEnableRelocation = false
     duplicatesStrategy = DuplicatesStrategy.FAIL
     archiveClassifier = "standalone-agent"
 
@@ -231,18 +229,14 @@ tasks.shadowJar {
             "Can-Retransform-Classes" to "true",
             // Main class is used for printing usage help on command line
             "Main-Class" to "marcono1234.unsafe_sanitizer.AgentMain",
-
-            // Mark as multi-release due to multi-release dependencies, see also https://github.com/GradleUp/shadow/issues/449
-            "Multi-Release" to "true",
         )
     }
-
-    // Exclude `module-info` from dependencies, see also https://github.com/GradleUp/shadow/issues/729
-    exclude("META-INF/versions/*/module-info.class")
 
     // Exclude duplicated Byte Buddy classes; Byte Buddy contains the same class files for Java 5 and Java 8, but since
     // this project here is using Java > 8 can omit the Java 5 classes, see also https://github.com/raphw/byte-buddy/pull/1719
     exclude("net/bytebuddy/**")
+    // Exclude conflicting license files from dependencies
+    exclude("META-INF/LICENSE", "META-INF/NOTICE")
 }
 // Run shadow task by default
 tasks.build {

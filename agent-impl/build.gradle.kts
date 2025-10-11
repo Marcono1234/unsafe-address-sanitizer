@@ -16,17 +16,12 @@ tasks.test {
 
 tasks.shadowJar {
     // Relocate all dependencies to not cause conflicts when the agent JAR is added to the bootstrap classpath
-    isEnableRelocation = true
+    enableAutoRelocation = true
     relocationPrefix = "marcono1234.unsafe_sanitizer.agent_impl.deps"
     duplicatesStrategy = DuplicatesStrategy.FAIL
 
     // Include own `module-info.class`, see https://github.com/GradleUp/shadow/issues/710
     excludes.remove("module-info.class")
-
-    // Exclude `module-info` from dependencies, see also https://github.com/GradleUp/shadow/issues/729
-    exclude("META-INF/versions/*/module-info.class")
-
-    // Note: Depending on the dependencies, might have to set `Multi-Release: true`, see https://github.com/GradleUp/shadow/issues/449
 }
 
 
