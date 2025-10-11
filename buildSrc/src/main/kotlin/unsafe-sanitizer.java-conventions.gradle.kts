@@ -27,8 +27,7 @@ tasks.compileJava {
     options.release = 17
 }
 
-// TODO: Maybe configure this using test suites instead, for consistency
-tasks.withType<Test> {
+tasks.withType<Test>().configureEach {
     useJUnitPlatform()
 
     testLogging {
@@ -38,5 +37,13 @@ tasks.withType<Test> {
         showStackTraces = true
         showCauses = true
         exceptionFormat = TestExceptionFormat.FULL
+
+        // TODO: Simplify once https://github.com/gradle/gradle/issues/5431 is fixed
+        afterSuite(KotlinClosure2({ descriptor: TestDescriptor, result: TestResult ->
+            // Only handle root test suite
+            if (descriptor.parent == null) {
+                logger.lifecycle("${result.testCount} tests (${result.successfulTestCount} successful, ${result.skippedTestCount} skipped, ${result.failedTestCount} failed)")
+            }
+        }))
     }
 }
