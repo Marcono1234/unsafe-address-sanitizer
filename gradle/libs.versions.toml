@@ -2,7 +2,7 @@
 
 [versions]
 bytebuddy = "1.17.7"
-junit = "6.0.0"
+junit = "6.0.1"
 
 [libraries]
 bytebuddy = { module = "net.bytebuddy:byte-buddy", version.ref = "bytebuddy" }
