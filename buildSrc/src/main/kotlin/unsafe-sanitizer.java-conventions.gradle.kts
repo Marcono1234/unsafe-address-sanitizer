@@ -14,7 +14,7 @@ repositories {
 }
 
 group = "marcono1234.unsafe_sanitizer"
-version = "0.0.1-SNAPSHOT"
+version = "0.0.1"
 
 java {
     toolchain {
