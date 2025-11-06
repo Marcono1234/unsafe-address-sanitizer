@@ -1,0 +1,47 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - v*
+
+permissions:
+  contents: write # to fetch code and create release
+
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: 17
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Get tag version
+        id: get_version
+        run: |
+          # Remove leading `v` from short ref name
+          version="${GITHUB_REF_NAME#v}"
+          echo "version=${version}" >> $GITHUB_OUTPUT
+          echo "Version: ${version}"
+
+      - name: Create release artifacts
+        # Don't automatically download JDK toolchain; existing JDK of this workflow should be compatible
+        run: ./gradlew assemble -Porg.gradle.java.installations.auto-download=false
+
+      - name: Create release and upload artifacts
+        uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090  # v2.4.1
+        with:
+          name: unsafe-address-sanitizer ${{ steps.get_version.outputs.version }}
+          files: build/libs/unsafe-address-sanitizer-*-standalone-agent.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

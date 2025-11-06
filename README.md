@@ -79,8 +79,9 @@ sanitizer to react to invalid memory access before it occurs, and before the JVM
 ## Usage
 
 > [!NOTE]
-> This library is currently not published to Maven Central. You have to build it locally, see the [Building](#building)
-> section.
+> This library is currently not published to Maven Central. However, the standalone agent JAR can be obtained from
+> the [GitHub releases](https://github.com/Marcono1234/unsafe-address-sanitizer/releases).\
+> Alternatively you can build it locally yourself, see the [Building](#building) section.
 
 (requires Java 17 or newer)
 
