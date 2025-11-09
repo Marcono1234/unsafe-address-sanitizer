@@ -14,7 +14,7 @@ repositories {
 }
 
 group = "marcono1234.unsafe_sanitizer"
-version = "0.0.2-SNAPSHOT"
+version = property("project.version") as String
 
 java {
     toolchain {
