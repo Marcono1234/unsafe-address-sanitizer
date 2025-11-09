@@ -1,4 +1,5 @@
 name: Release
+run-name: Release ${{ inputs.releaseVersion }}
 
 on:
   # Only run when manually triggered
@@ -31,6 +32,10 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
+        with:
+          # Disable caching for release to make sure release build is really reproducible,
+          # and to protect against potentially poisoned cache, see also https://docs.zizmor.sh/audits/#cache-poisoning
+          cache-disabled: true
 
       - name: Update project version
         run: sed -i "s/project.version=.*$/project.version=${{ inputs.releaseVersion }}/" gradle.properties
