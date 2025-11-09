@@ -1,12 +1,18 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - v*
+  # Only run when manually triggered
+  workflow_dispatch:
+    inputs:
+      # Take the desired version number as input, don't simply remove the `-SNAPSHOT` suffix from the current version
+      # because the changes since the last release might actually require a minor or major version bump
+      releaseVersion:
+        description: 'Project version to release (e.g. 1.2.3)'
+        required: true
+        type: string
 
 permissions:
-  contents: write # to fetch code and create release
+  contents: write # to update code and create release
 
 
 jobs:
@@ -26,13 +32,21 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
 
-      - name: Get tag version
-        id: get_version
+      - name: Update project version
+        run: sed -i "s/project.version=.*$/project.version=${{ inputs.releaseVersion }}/" gradle.properties
+
+      - name: Configure Git
         run: |
-          # Remove leading `v` from short ref name
-          version="${GITHUB_REF_NAME#v}"
-          echo "version=${version}" >> $GITHUB_OUTPUT
-          echo "Version: ${version}"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+
+      - name: Commit & push
+        run: |
+          git add .
+          git commit -m "Release version ${{ inputs.releaseVersion }}"
+          git tag -a "v${{ inputs.releaseVersion }}" -m "Release ${{ inputs.releaseVersion }}"
+          # Already push changes here so that GitHub Release can be created below
+          git push --follow-tags
 
       - name: Create release artifacts
         # Don't automatically download JDK toolchain; existing JDK of this workflow should be compatible
@@ -41,7 +55,15 @@ jobs:
       - name: Create release and upload artifacts
         uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090  # v2.4.1
         with:
-          name: unsafe-address-sanitizer ${{ steps.get_version.outputs.version }}
+          tag_name: v${{ inputs.releaseVersion }}
+          name: unsafe-address-sanitizer ${{ inputs.releaseVersion }}
           files: build/libs/unsafe-address-sanitizer-*-standalone-agent.jar
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare next snapshot
+        run: |
+          # Version bumping is based on https://stackoverflow.com/a/4486087
+          NEXT_VERSION=$(echo "${{ inputs.releaseVersion }}" | awk -F. '{$NF++;print}' OFS=.)-SNAPSHOT
+          sed -i "s/project.version=.*/project.version=$NEXT_VERSION/" gradle.properties
+          git add .
+          git commit -m "Update project version to $NEXT_VERSION"
+          git push
