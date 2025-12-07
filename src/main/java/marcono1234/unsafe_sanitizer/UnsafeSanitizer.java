@@ -727,7 +727,7 @@ public class UnsafeSanitizer {
             throw new IllegalArgumentException("Invalid address: " + address);
         }
         if (bytesCount <= 0) {
-            throw new IllegalArgumentException("Invalid bytes count: " + address);
+            throw new IllegalArgumentException("Invalid bytes count: " + bytesCount);
         }
 
         // TODO: Maybe handle it better when ErrorAction is not THROW (and this only returns false instead of throwing)?

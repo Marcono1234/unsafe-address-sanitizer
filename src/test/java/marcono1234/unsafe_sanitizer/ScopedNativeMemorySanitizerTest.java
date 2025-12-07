@@ -418,6 +418,12 @@ class ScopedNativeMemorySanitizerTest {
         withScopedNativeMemoryTracking(true, () -> {
             assertBadMemoryAccess(() -> unsafe.getByte(address));
 
+            var e = assertThrows(IllegalArgumentException.class, () -> UnsafeSanitizer.registerAllocatedMemory(0, 10));
+            assertEquals("Invalid address: 0", e.getMessage());
+
+            e = assertThrows(IllegalArgumentException.class, () -> UnsafeSanitizer.registerAllocatedMemory(address, 0));
+            assertEquals("Invalid bytes count: 0", e.getMessage());
+
             UnsafeSanitizer.registerAllocatedMemory(address, 10);
             // This actually reads uninitialized memory, but `registerAllocatedMemory` assumes that region is
             // fully initialized
