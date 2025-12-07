@@ -719,9 +719,13 @@ public class UnsafeSanitizer {
      * Otherwise if that memory had not been registered, the sanitizer would likely report errors when
      * trying to access that memory later.
      *
+     * @param isInitialized
+     *      whether the memory should be considered fully initialized or uninitialized; this is relevant when
+     *      {@link AgentSettings#uninitializedMemoryTracking()} is enabled
+     *
      * @see #deregisterAllocatedMemory(long)
      */
-    public static void registerAllocatedMemory(long address, long bytesCount) {
+    public static void registerAllocatedMemory(long address, long bytesCount, boolean isInitialized) {
         checkInstalled();
         if (address <= 0) {
             throw new IllegalArgumentException("Invalid address: " + address);
@@ -732,17 +736,17 @@ public class UnsafeSanitizer {
 
         // TODO: Maybe handle it better when ErrorAction is not THROW (and this only returns false instead of throwing)?
         if (UnsafeSanitizerImpl.onAllocatedMemory(address, bytesCount, false)) {
-            // Perform a dummy write access to mark memory section as fully initialized, because sanitizer might not
-            // be aware of all previous writes to this section
-            // TODO: Maybe add a parameter to `registerAllocatedMemory` to let the user decide if this should be performed
-            UnsafeSanitizerImpl.onWriteAccess(null, address, bytesCount);
+            if (isInitialized) {
+                // Perform a dummy write access to mark memory section as fully initialized
+                UnsafeSanitizerImpl.onWriteAccess(null, address, bytesCount);
+            }
         } else {
             throw new IllegalStateException("Failed to register allocated memory");
         }
     }
 
     /**
-     * Deregisters allocated memory previously registered with {@link #registerAllocatedMemory(long, long)}.
+     * Deregisters allocated memory previously registered with {@link #registerAllocatedMemory(long, long, boolean)}.
      */
     public static void deregisterAllocatedMemory(long address) {
         checkInstalled();

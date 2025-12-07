@@ -413,30 +413,48 @@ class ScopedNativeMemorySanitizerTest {
 
     @Test
     void registerAllocatedMemory() {
-        long address = allocateMemory(10);
+        long bytesCount = 10;
+        long address = allocateMemory(bytesCount);
+        // Initialize memory
+        unsafe.setMemory(address, bytesCount, (byte) 0);
 
         withScopedNativeMemoryTracking(true, () -> {
+            // Should fail because allocation happened outside of scope
             assertBadMemoryAccess(() -> unsafe.getByte(address));
 
-            var e = assertThrows(IllegalArgumentException.class, () -> UnsafeSanitizer.registerAllocatedMemory(0, 10));
+            var e = assertThrows(IllegalArgumentException.class, () -> UnsafeSanitizer.registerAllocatedMemory(0, bytesCount, true));
             assertEquals("Invalid address: 0", e.getMessage());
 
-            e = assertThrows(IllegalArgumentException.class, () -> UnsafeSanitizer.registerAllocatedMemory(address, 0));
+            e = assertThrows(IllegalArgumentException.class, () -> UnsafeSanitizer.registerAllocatedMemory(address, 0, true));
             assertEquals("Invalid bytes count: 0", e.getMessage());
+        });
 
-            UnsafeSanitizer.registerAllocatedMemory(address, 10);
-            // This actually reads uninitialized memory, but `registerAllocatedMemory` assumes that region is
-            // fully initialized
-            assertNoBadMemoryAccess(() -> unsafe.getByte(address));
+        withScopedNativeMemoryTracking(true, () -> {
+            // Register as uninitialized
+            UnsafeSanitizer.registerAllocatedMemory(address, bytesCount, false);
 
-            // Reads outside of region
-            assertBadMemoryAccess(() -> unsafe.getLong(address + 8));
+            var accessError = assertBadMemoryAccess(() -> unsafe.getByte(address));
+            assertTrue(accessError.getMessage().startsWith("Trying to read uninitialized data at address "));
+
+            assertNoBadMemoryAccess(() -> unsafe.putByte(address, (byte) 1));
+            assertNoBadMemoryAccess(() -> assertEquals(1, unsafe.getByte(address)));
 
             UnsafeSanitizer.deregisterAllocatedMemory(address);
             assertBadMemoryAccess(() -> unsafe.getByte(address));
 
             // Double free
             assertBadMemoryAccess(() -> UnsafeSanitizer.deregisterAllocatedMemory(address));
+        });
+
+        withScopedNativeMemoryTracking(true, () -> {
+            // Register as initialized
+            UnsafeSanitizer.registerAllocatedMemory(address, bytesCount, true);
+            assertNoBadMemoryAccess(() -> unsafe.getByte(address));
+
+            // Reads outside of region
+            assertBadMemoryAccess(() -> unsafe.getLong(address + 8));
+
+            UnsafeSanitizer.deregisterAllocatedMemory(address);
         });
 
         // Clean up
