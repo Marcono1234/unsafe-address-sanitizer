@@ -510,6 +510,18 @@ public class UnsafeSanitizer {
         JarFile jar;
         try {
             Path agentJarPath = Files.createTempFile(jarNamePrefix, jarNameSuffix);
+
+            // On Windows this seems to have no effect, see https://bugs.openjdk.org/browse/JDK-8219681
+            // Therefore need to clean up manually, see below
+            agentJarPath.toFile().deleteOnExit();
+
+            // Create a 'lock file' to know if agent JAR is still in use
+            // Do this here already before copying content, so in case of race condition where other JVM process
+            // sees JAR file before lock file, the JAR file has still 0 bytes and will be ignored
+            Path lockFile = createLockFilePath(agentJarPath);
+            Files.createFile(lockFile);
+            lockFile.toFile().deleteOnExit();
+
             InputStream agentJarStream = UnsafeSanitizer.class.getResourceAsStream("agent-impl.jar");
             if (agentJarStream == null) {
                 throw new IllegalStateException("agent-impl JAR is missing");
@@ -520,14 +532,9 @@ public class UnsafeSanitizer {
             }
             jarDir = agentJarPath.getParent();
 
-            // On Windows this seems to have no effect, see https://bugs.openjdk.org/browse/JDK-8219681
-            // Therefore need to clean up manually, see below
-            agentJarPath.toFile().deleteOnExit();
-            // Create a 'lock file' to know if agent JAR is still in use
-            Path lockFile = createLockFilePath(agentJarPath);
-            Files.createFile(lockFile);
-            lockFile.toFile().deleteOnExit();
-
+            // Cannot use `ZipFile.OPEN_DELETE` here to avoid these temp file cleanup issues mentioned above;
+            // the internal implementation of `Instrumentation#appendToBootstrapClassLoaderSearch` just uses
+            // the JarFile path and not the actual JarFile object
             jar = new JarFile(agentJarPath.toFile());
         } catch (Exception e) {
             throw new IllegalStateException("Failed preparing agent-impl JAR", e);
@@ -545,6 +552,17 @@ public class UnsafeSanitizer {
         };
         try (DirectoryStream<Path> agentJarFiles = Files.newDirectoryStream(jarDir, agentJarFilter)) {
             for (Path agentJarFile : agentJarFiles) {
+                try {
+                    // Ignore a race condition where this JVM might observe a 0 bytes JAR file before the other JVM
+                    // had created the lock file and wrote the JAR content
+                    if (Files.size(agentJarFile) == 0) {
+                        continue;
+                    }
+                } catch (IOException e) {
+                    // If obtaining file size failed, err on the safe side and skip this file
+                    continue;
+                }
+
                 Path lockFile = createLockFilePath(agentJarFile);
                 // Only delete if the agent JAR is not in use anymore, i.e. the lock file does not exist
                 if (Files.notExists(lockFile)) {
