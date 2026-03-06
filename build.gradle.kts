@@ -233,9 +233,6 @@ tasks.shadowJar {
         )
     }
 
-    // Exclude duplicated Byte Buddy classes; Byte Buddy contains the same class files for Java 5 and Java 8, but since
-    // this project here is using Java > 8 can omit the Java 5 classes, see also https://github.com/raphw/byte-buddy/pull/1719
-    exclude("net/bytebuddy/**")
     // Exclude conflicting license files from dependencies
     exclude("META-INF/LICENSE", "META-INF/NOTICE")
 }
