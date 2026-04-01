@@ -38,12 +38,13 @@ tasks.withType<Test>().configureEach {
         showCauses = true
         exceptionFormat = TestExceptionFormat.FULL
 
-        // TODO: Simplify once https://github.com/gradle/gradle/issues/5431 is fixed
-        afterSuite(KotlinClosure2({ descriptor: TestDescriptor, result: TestResult ->
-            // Only handle root test suite
-            if (descriptor.parent == null) {
-                logger.lifecycle("${result.testCount} tests (${result.successfulTestCount} successful, ${result.skippedTestCount} skipped, ${result.failedTestCount} failed)")
+        addTestListener(object : TestListener {
+            override fun afterSuite(suite: TestDescriptor, result: TestResult) {
+                // Only handle root test suite
+                if (suite.parent == null) {
+                    logger.lifecycle("${result.testCount} tests (${result.successfulTestCount} successful, ${result.skippedTestCount} skipped, ${result.failedTestCount} failed)")
+                }
             }
-        }))
+        })
     }
 }
