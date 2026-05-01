@@ -31,7 +31,7 @@ jobs:
           java-version: 17
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v6
         with:
           # Disable caching for release to make sure release build is really reproducible,
           # and to protect against potentially poisoned cache, see also https://docs.zizmor.sh/audits/#cache-poisoning
