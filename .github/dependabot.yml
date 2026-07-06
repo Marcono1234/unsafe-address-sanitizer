@@ -8,6 +8,7 @@ updates:
       interval: "semiannually"
     cooldown:
       default-days: 14
+    open-pull-requests-limit: 15
 
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -15,3 +16,4 @@ updates:
       interval: "semiannually"
     cooldown:
       default-days: 14
+    open-pull-requests-limit: 15
