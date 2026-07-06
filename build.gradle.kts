@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.shadow)
 }
 
-val agentJar: Configuration by configurations.creating {
+val agentJar = configurations.create("agentJar") {
     // Prevent projects depending on this one from seeing and using this configuration
     isCanBeConsumed = false
     isTransitive = false
@@ -84,7 +84,7 @@ testing {
             var testName = "agentTestJdk${testConfig.javaVersion}"
             testConfig.agentArgs?.let { testName += "Args" }
 
-            val agentTest by register(testName, JvmTestSuite::class) {
+            val agentTest = register(testName, JvmTestSuite::class) {
                 useJUnitJupiter(libs.versions.junit)
 
                 // TODO: This causes the warning "Duplicate content roots detected" in IntelliJ because all the
